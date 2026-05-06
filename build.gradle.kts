@@ -39,7 +39,8 @@ modstitch {
         val creds = arrayOf(
             "TheKillerBunny: for making GoofyPlugin",
             "Sam ★: Being so cool fr",
-            "cosmic_the_cat: Creating the icon for the plugin"
+            "cosmic_the_cat: Creating the icon for the plugin",
+            "Somataru: French translations"
         )
         modCredits = creds.joinToString("\n");
         modLicense = "MIT"

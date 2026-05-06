@@ -115,16 +115,6 @@ public class LuaGraphics {
         return this;
     }
 
-//    @LuaWhitelist
-//    public LuaGraphics blit(@LuaNotNil Object texture, @LuaNotNil int x, @LuaNotNil int y, @LuaNotNil int w, @LuaNotNil int h, Integer u, Integer v, Integer uw, Integer uh) {
-//        if (texture instanceof FiguraTexture tx) {
-//            return blit(tx.getLocation(), x, y, w, h);
-//        } else if (texture instanceof String loc) {
-//            return blit(ResourceLocation.read(loc).result().orElse(new ResourceLocation("missing")));
-//        }
-//        graphics.blit(texture, x, y, 0, (float)0, (float)0, w, h, texture.getWidth(), texture.getHeight());
-//        return this;
-//    }
     @LuaWhitelist
     @LuaMethodDoc(
             value = "silly.lua_graphics.blit",
@@ -244,18 +234,22 @@ public class LuaGraphics {
     public LuaGraphics blitString(@LuaNotNil String string, @LuaNotNil Object x, Integer y, Integer width) {
         _ensureValid();
         if (width == null) width = graphics.guiWidth();
-        FiguraVec2 pos;
+        Integer finalX = null;
+        Integer finalY = null;
         if (x instanceof FiguraVec2 p) {
-            pos = p;
+            finalX = ((Number)p.x).intValue();
+            finalY = ((Number)p.y).intValue();
+            //noinspection SuspiciousNameCombination
             width = y;
         } else {
-            pos = FiguraVec2.of((Double)x, y);
+            finalX = ((Number)x).intValue();
+            finalY = y;
         }
         Component comp = TextUtils.tryParseJson(string);
         Emojis.applyEmojis(comp);
 
 //        comp = TextUtils.formatInBounds(comp, Minecraft.getInstance().font, width, )
-        graphics.drawWordWrap(Minecraft.getInstance().font, comp, (int)pos.x, (int)pos.y, width, 0xFFFFFFFF);
+        graphics.drawWordWrap(Minecraft.getInstance().font, comp, finalX, finalY, width, 0xFFFFFFFF);
         return this;
     }
 
@@ -265,7 +259,7 @@ public class LuaGraphics {
             overloads = {
                     @LuaMethodOverload(
                             argumentNames = { "stackString", "pos" },
-                            argumentTypes = { String.class, FiguraVec3.class },
+                            argumentTypes = { String.class, FiguraVec2.class },
                             returnType = LuaGraphics.class
                     ),
                     @LuaMethodOverload(
@@ -275,7 +269,7 @@ public class LuaGraphics {
                     ),
                     @LuaMethodOverload(
                             argumentNames = { "itemStack", "pos" },
-                            argumentTypes = { ItemStackAPI.class, FiguraVec3.class },
+                            argumentTypes = { ItemStackAPI.class, FiguraVec2.class },
                             returnType = LuaGraphics.class
                     ),
                     @LuaMethodOverload(

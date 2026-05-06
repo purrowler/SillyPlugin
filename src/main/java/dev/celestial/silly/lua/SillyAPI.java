@@ -356,6 +356,23 @@ public class SillyAPI {
     }
 
     @LuaWhitelist
+    @LuaMethodDoc(
+            value = "silly.set_permission",
+            overloads = {
+                    @LuaMethodOverload(
+                            argumentNames = { "name", "permissionKey", "value" },
+                            argumentTypes = { String.class, String.class, Boolean.class }
+                    ),
+                    @LuaMethodOverload(
+                            argumentNames = { "name", "permissionKey", "value" },
+                            argumentTypes = { String.class, String.class, Integer.class }
+                    ),
+                    @LuaMethodOverload(
+                            argumentNames = { "name", "permissionKey" },
+                            argumentTypes = { String.class, String.class }
+                    ),
+            }
+    )
     public void setPermission(@LuaNotNil String name, @LuaNotNil String permissionKey, Object value) {
         if (!local) return;
 //        Avatar avatar = SillyUtil.getAvatar(name);
@@ -393,6 +410,19 @@ public class SillyAPI {
     }
 
     @LuaWhitelist
+    @LuaMethodDoc(
+            value = "silly.set_permission_category",
+            overloads = {
+                    @LuaMethodOverload(
+                            argumentNames = { "name", "category" },
+                            argumentTypes = { String.class, String.class }
+                    ),
+                    @LuaMethodOverload(
+                            argumentNames = { "name" },
+                            argumentTypes = { String.class }
+                    )
+            }
+    )
     public void setPermissionCategory(@LuaNotNil String name, String category) {
         if (!local) return;
         Avatar avatar = SillyUtil.getAvatar(name);

@@ -38,6 +38,12 @@ public class SillyProfiler {
         return entry.getRight() - entry.getLeft();
     }
 
+    private long getTime(CyclicalDeque<Pair<Long,Long>> deque) {
+        if (deque.isEmpty())
+            return -1;
+        return getTime(deque.getFirst());
+    }
+
     // { [string]: long[60] (nanos) }
     @LuaWhitelist
     @LuaMethodDoc(
@@ -57,12 +63,13 @@ public class SillyProfiler {
     )
     public LuaTable getTimes(Boolean onlyLast) {
         LuaTable table = new LuaTable();
+        if (onlyLast == null) onlyLast = false;
         if (onlyLast) {
-            table.set("TICK_EVENT", getTime(lastTickEventTimes.getFirst()));
-            table.set("RENDER_EVENT", getTime(lastRenderEventTimes.getFirst()));
-            table.set("RENDER", getTime(lastRenderTimes.getFirst()));
-            table.set("WORLD_TICK", getTime(lastWorldTickTimes.getFirst()));
-            table.set("WORLD_RENDER", getTime(lastWorldRenderTimes.getFirst()));
+            table.set("TICK_EVENT", getTime(lastTickEventTimes));
+            table.set("RENDER_EVENT", getTime(lastRenderEventTimes));
+            table.set("RENDER", getTime(lastRenderTimes));
+            table.set("WORLD_TICK", getTime(lastWorldTickTimes));
+            table.set("WORLD_RENDER", getTime(lastWorldRenderTimes));
         } else {
             table.set("TICK_EVENT", getTickTimes());
             table.set("RENDER_EVENT", getRenderEventTimes());

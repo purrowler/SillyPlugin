@@ -57,7 +57,7 @@ public class GuiMixin {
                 if (avatar != null && avatar.luaRuntime != null) {
                     LuaGraphics lg = new LuaGraphics(guiGraphics);
                     //? if >=1.21 {
-                    /*avatar.run("GUI_RENDER", avatar.render, lg, deltaTracker.getGameTimeDeltaTicks());
+                    /*avatar.run("GUI_RENDER", avatar.render, lg, deltaTracker.getGameTimeDeltaPartialTick(false));
                     *///?} else {
                     avatar.run("GUI_RENDER", avatar.render, lg, f);
                      //?}
@@ -79,7 +79,7 @@ public class GuiMixin {
             if (avatar != null && avatar.luaRuntime != null) {
                 LuaGraphics lg = new LuaGraphics(guiGraphics);
                 //? if >=1.21 {
-                /*avatar.run("GUI_RENDER", avatar.render, lg, deltaTracker.getGameTimeDeltaTicks());
+                /*avatar.run("GUI_RENDER", avatar.render, lg, deltaTracker.getGameTimeDeltaPartialTick(false));
                 *///?} else {
                 avatar.run("GUI_RENDER", avatar.render, lg, f);
                  //?}
