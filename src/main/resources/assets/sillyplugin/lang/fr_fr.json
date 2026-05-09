@@ -86,5 +86,7 @@
 
     "figura.docs.events.error": "Évènement appelé lors d'une erreur de votre avatar.\nRenvoyer true pour arrêter l'erreur.",
     "figura.docs.events.gui_render": "Évènement appelé lorsque le GUI (interface) est affichée.\nUtiliser le wrapper LuaGraphics pour afficher à l'écran.",
-    "figura.docs.events.move": "Évènement appelé lorsque votre velocité a été calculée.\nRenvoyer un Vector3 pour écraser la vélocité.\nNécessite que la triche soit actiée pour écraser la vélocité."
+    "figura.docs.events.move": "Évènement appelé lorsque votre velocité a été calculée.\nRenvoyer un Vector3 pour écraser la vélocité.\nNécessite que la triche soit actiée pour écraser la vélocité.",
+
+    "figura.docs.enum.silly_gui_element": "Liste des éléments valides de l'interface qui peuvent être désactivés dans SillyPlugin."
 }
