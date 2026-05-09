@@ -3,15 +3,19 @@ package dev.celestial.silly.helper;
 //? if >=1.21 {
 /*import net.minecraft.client.DeltaTracker;
 *///?}
+import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.client.renderer.texture.SimpleTexture;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -27,6 +31,8 @@ import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.math.vector.FiguraVec2;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.math.vector.FiguraVec4;
+import org.figuramc.figura.mixin.render.MissingTextureAtlasSpriteAccessor;
+import org.figuramc.figura.mixin.render.TextureAtlasAccessor;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import org.figuramc.figura.model.rendertasks.TextTask;
 import org.figuramc.figura.utils.LuaUtils;
@@ -36,6 +42,10 @@ import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.luaj.vm2.LuaError;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 @LuaWhitelist
 @LuaTypeDoc(name = "LuaGraphicsAPI", value = "silly.lua_graphics")
@@ -192,10 +202,33 @@ public class LuaGraphics {
             ResourceLocation loc = new ResourceLocation(str);
             //?}
 
+            FiguraVec2 size = cachedTextureSizes.containsKey(loc) ? cachedTextureSizes.get(loc) : new FiguraVec2();
+            if (!cachedTextureSizes.containsKey(loc)) {
+                try {
+                    TextureAtlas atlas = Minecraft.getInstance().getModelManager().getAtlas(loc);
+                    TextureAtlasAccessor atlasAccessor = (TextureAtlasAccessor) atlas;
+                    size.x = atlasAccessor.getWidth();
+                    size.y = atlasAccessor.getHeight();
+                    cachedTextureSizes.put(loc, size);
+                } catch (Exception ignored) {}
+                try {
+                    Optional<Resource> resource = Minecraft.getInstance().getResourceManager().getResource(loc);
+                    NativeImage image = resource.isPresent() ? NativeImage.read(resource.get().open()) : null;
+                    if (image != null) {
+                        size.x = image.getWidth();
+                        size.y = image.getHeight();
+                        cachedTextureSizes.put(loc, size);
+                    }
+                } catch (Exception e) {
+                    throw new LuaError(e.getMessage());
+                }
+            }
+            region = region != null ? region : FiguraVec4.of(0,0,size.x, size.y);
+
             //? if >=1.21.2 {
-            /*graphics.blit(RenderType::guiTextured, loc, (int)pos.x, (int)pos.y, (int)region.x, (int)region.y, (int)region.z, (int)region.w, 256, 256);
+            /*graphics.blit(RenderType::guiTextured, loc, (int)pos.x, (int)pos.y, (int)region.x, (int)region.y, (int)region.z, (int)region.w,(int)size.x,(int)size.y);
             *///?} else {
-            graphics.blit(loc, (int)pos.x, (int)pos.y, 0, (int)region.x, (int)region.y, (int)region.z, (int)region.w, 256, 256);
+            graphics.blit(loc, (int)pos.x, (int)pos.y, 0, (int)region.x, (int)region.y, (int)region.z, (int)region.w, (int)size.x,(int)size.y);
             //?}
 
         } else {
@@ -204,6 +237,8 @@ public class LuaGraphics {
 
         return this;
     }
+
+    public static Map<ResourceLocation, FiguraVec2> cachedTextureSizes = new HashMap<>();
 
     @LuaWhitelist
     @LuaMethodDoc(
@@ -239,8 +274,9 @@ public class LuaGraphics {
         if (x instanceof FiguraVec2 p) {
             finalX = ((Number)p.x).intValue();
             finalY = ((Number)p.y).intValue();
-            //noinspection SuspiciousNameCombination
-            width = y;
+            if (y != null)
+                //noinspection SuspiciousNameCombination
+                width = y;
         } else {
             finalX = ((Number)x).intValue();
             finalY = y;

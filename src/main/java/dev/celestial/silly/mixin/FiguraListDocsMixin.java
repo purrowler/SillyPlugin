@@ -1,114 +1,87 @@
 package dev.celestial.silly.mixin;
 
-import com.llamalad7.mixinextras.sugar.Local;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import dev.celestial.silly.SillyEnums;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import org.figuramc.figura.FiguraMod;
-import org.figuramc.figura.lua.docs.FiguraDoc;
+import dev.celestial.silly.SillyPlugin;
 import org.figuramc.figura.lua.docs.FiguraListDocs;
-import org.figuramc.figura.utils.ColorUtils;
-import org.figuramc.figura.utils.FiguraClientCommandSource;
-import org.figuramc.figura.utils.FiguraText;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Array;
+import java.util.*;
+import java.util.function.Supplier;
 
-@Mixin(value = FiguraListDocs.class, remap = false)
+@Mixin(targets = {"org.figuramc.figura.lua.docs.FiguraListDocs$ListDoc"}, remap = false)
+@Unique
 public class FiguraListDocsMixin {
+    // doesnt work; mixin says it cant find $VALUES
+//    @Shadow
+//    @Final
+//    @Mutable
+//    private static Object $VALUES;
+
     @Unique
-    private static LiteralArgumentBuilder<FiguraClientCommandSource> silly$generateCommand() {
-        Class<SillyEnums.GUI_ELEMENT> en = SillyEnums.GUI_ELEMENT.class;
-        LiteralArgumentBuilder<FiguraClientCommandSource> command = LiteralArgumentBuilder.literal("silly_gui_element");
-        Collection<?> get = Arrays.stream(SillyEnums.GUI_ELEMENT.values()).map(SillyEnums.GUI_ELEMENT::name).toList();
+    private static List<Object> silly$fakeValues = new ArrayList<>();
+    @Unique
+    private static HashMap<String, Object> silly$quickFakeValuesLookup = new HashMap<>();
+    @Unique
+    private static Class<?> silly$class = null;
 
-        // display everything
-        command.executes(context -> {
-            Collection<?> coll = get;
-            if (coll.isEmpty()) {
-                FiguraMod.sendChatMessage(FiguraText.of("docs.enum.empty"));
-                return 0;
-            }
-
-            MutableComponent text = FiguraDoc.HEADER.copy()
-                    .append("\n\n")
-                    .append(Component.literal("• ")
-                            .append(FiguraText.of("docs.text.description"))
-                            .append(":")
-                            .withStyle(ColorUtils.Colors.PURPLE.style))
-                    .append("\n\t")
-                    .append(Component.literal("• ")
-                            .append(FiguraText.of("docs.enum." + "silly_gui_element"))
-                            .withStyle(ColorUtils.Colors.FIGURA_BLUE.style))
-                    .append("\n\n")
-                    .append(Component.literal("• ")
-                            .append(FiguraText.of("docs.text.entries"))
-                            .append(":")
-                            .withStyle(ColorUtils.Colors.PURPLE.style));
-
-            int i = 0;
-            for (Object o : coll) {
-                MutableComponent component;
-
-                if (o instanceof Map.Entry e) {
-                    component = Component.literal(e.getKey().toString()).withStyle(ChatFormatting.WHITE);
-                    for (String s : (List<String>) e.getValue()) {
-                        component.append(Component.literal(" | ").withStyle(ChatFormatting.YELLOW))
-                                .append(Component.literal(s).withStyle(ChatFormatting.GRAY));
-                    }
-                } else {
-                    component = Component.literal(o.toString()).withStyle(ChatFormatting.WHITE);
-                }
-
-                text.append("\n\t");
-                text.append(Component.literal("• ").withStyle(ChatFormatting.YELLOW)).append(component);
-                i++;
-            }
-
-            FiguraMod.sendChatMessage(text);
-            return 1;
-        });
-
-        // add collection as child for easy navigation
-        Collection<?> coll = get;
-        for (Object o : coll) {
-            String text = o instanceof Map.Entry e ? e.getKey().toString() : o.toString();
-            LiteralArgumentBuilder<FiguraClientCommandSource> entry = LiteralArgumentBuilder.literal(text);
-            entry.executes(context -> {
-                FiguraMod.sendChatMessage(Component.literal(text).withStyle(ColorUtils.Colors.AWESOME_BLUE.style));
-                return 1;
-            });
-
-            if (o instanceof Map.Entry e) {
-                for (String s : (List<String>) e.getValue()) {
-                    LiteralArgumentBuilder<FiguraClientCommandSource> child = LiteralArgumentBuilder.literal(s);
-                    child.executes(context -> {
-                        FiguraMod.sendChatMessage(Component.literal(s).withStyle(ColorUtils.Colors.AWESOME_BLUE.style));
-                        return 1;
-                    });
-                    entry.then(child);
+    // kill me please this is hell
+    @Unique
+    private static void silly$addToDocs(String $NAME, Supplier<Object> supplier, String name, String id, int split) throws Throwable {
+        if (silly$class == null) {
+            for (Class<?> maybe : FiguraListDocs.class.getDeclaredClasses()) {
+                if (maybe.getSimpleName().equals("ListDoc")) {
+                    silly$class = maybe;
                 }
             }
-
-            command.then(entry);
         }
-
-        // return
-        return command;
+        if (silly$class == null) throw new AssertionError("Could not find ListDoc enum class!");
+        Object values = silly$class.getDeclaredField("$VALUES").get(null); // Object -> ListDoc[]
+        Object[] values2 = (Object[])values; // Object[] -> ListDoc[]
+        ArrayList<Object> list = new ArrayList<>(Arrays.stream(values2).toList());
+        var last = list.get(list.size() - 1);
+        var castedLast = silly$class.cast(last);
+        var ordinal = (int)silly$class.getMethod("ordinal").invoke(castedLast);
+        int nextOrdinal = ordinal + silly$fakeValues.size() + 1;
+        var constr = MethodHandles.lookup().unreflectConstructor(
+                silly$class.getDeclaredConstructor(String.class, int.class,
+                        Supplier.class, String.class, String.class, int.class));
+        var instance = constr.invoke($NAME, nextOrdinal, supplier, name, id, split);
+        silly$fakeValues.add(instance);
+        silly$quickFakeValuesLookup.put($NAME.toLowerCase(), instance);
     }
-    @Inject(method = "getCommand", at = @At("RETURN"))
-    private static void getCommandMixin(CallbackInfoReturnable<LiteralArgumentBuilder<FiguraClientCommandSource>> cir, @Local LiteralArgumentBuilder<FiguraClientCommandSource> root) {
-        root.then(silly$generateCommand());
 
+    @Inject(method = "values", at = @At("RETURN"), cancellable = true)
+    private static void silly$ihatethis(CallbackInfoReturnable<Object[]> cir) {
+        ArrayList<Object> list = new ArrayList<>(Arrays.asList(cir.getReturnValue()));
+        for (var value : silly$fakeValues) {
+            list.add(silly$class.cast(value));
+        }
+        Object[] ret = (Object[])Array.newInstance(silly$class, list.size());
+        System.arraycopy(list.toArray(), 0, ret, 0, list.size());
+        cir.setReturnValue(ret);
+    }
+
+    @Inject(method = "valueOf", at = @At("HEAD"), cancellable = true)
+    private static void silly$ihatethis2(String name, CallbackInfoReturnable<Object> cir) {
+        if (silly$quickFakeValuesLookup.containsKey(name.toLowerCase(Locale.ROOT)))
+            cir.setReturnValue(silly$quickFakeValuesLookup.get(name.toLowerCase(Locale.ROOT)));
+    }
+
+    static {
+        try {
+            silly$addToDocs("SILLY_GUI_ELEMENT", () -> {
+                var ret = new LinkedHashSet<String>();
+                for (var value : SillyEnums.GUI_ELEMENT.values())
+                    ret.add(value.name());
+                return ret;
+            }, "SillyGUIElement", "silly_gui_element", 1);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
     }
 }

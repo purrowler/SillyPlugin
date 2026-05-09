@@ -86,5 +86,7 @@
 
     "figura.docs.events.error": "Event that's called when your avatar errors.\nReturn true to stop the error.",
     "figura.docs.events.gui_render": "Event that's called when the GUI is rendering.\nUse the LuaGraphics wrapper to draw to the screen.",
-    "figura.docs.events.move": "Event that's called when your velocity has been calculated.\nReturn a Vector3 to overwrite the velocity.\nRequires cheats to overwrite."
+    "figura.docs.events.move": "Event that's called when your velocity has been calculated.\nReturn a Vector3 to overwrite the velocity.\nRequires cheats to overwrite.",
+
+    "figura.docs.enum.silly_gui_element": "List of valid GUI elements that can be disabled in Sillyplugin."
 }

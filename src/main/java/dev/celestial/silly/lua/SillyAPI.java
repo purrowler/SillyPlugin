@@ -1050,10 +1050,16 @@ public class SillyAPI {
                     )
             }
     )
-    public void setPos(@LuaNotNil Object x, Float y, Float z, Boolean sendPacket) {
+    public void setPos(@LuaNotNil Object x, Float y, Float z, Object sendPacket) {
         assert minecraft.player != null;
         Vec3 cur = minecraft.player.position();
-        final Boolean sendPacketForReal = sendPacket != null && sendPacket;
+
+        // explicitly check if its a boolean,
+        // rather than annotating as a boolean.
+        // this is mainly for compatibility with
+        // Bitslayn's Lift API.
+        final boolean sendPacketForReal = sendPacket instanceof Boolean sp && sp;
+
         FiguraVec3 pos = LuaUtils.parseVec3("setPos", x, y, z, cur.x, cur.y, cur.z);
         if (isVectorOkay(pos))
             cheatExecutor(plr -> {
