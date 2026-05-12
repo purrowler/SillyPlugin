@@ -24,7 +24,7 @@ public class NeoforgeEntrypoint implements ISillyLoader {
 
     @Override
     public String getModVersion(String mod_id) {
-        return ModList.get().getModContainerById(SillyPlugin.MOD_ID).map(cont -> cont.getModInfo().getVersion().getQualifier()).orElse(null);
+        return ModList.get().getModContainerById(mod_id).map(cont -> cont.getModInfo().getVersion().toString()).orElse(null);
     }
 }
 *///?}

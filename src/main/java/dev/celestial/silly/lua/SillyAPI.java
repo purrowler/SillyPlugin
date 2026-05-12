@@ -667,7 +667,7 @@ public class SillyAPI {
     }
 
     @LuaWhitelist
-    @LuaMethodDoc(value = "silly.getNanoTime")
+    @LuaMethodDoc(value = "silly.get_nano_time")
     public Long getNanoTime() {
         return System.nanoTime();
     }

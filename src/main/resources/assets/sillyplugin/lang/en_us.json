@@ -34,6 +34,7 @@
     "figura.docs.silly.format_script": "Runs figura's code minifiers on the provided string. Defaults to the current set level.",
     "figura.docs.silly.set_subscribe_pings": "Forces subscribing to an avatar's pings. Useful for cross-server cross-avatar communication.",
     "figura.docs.silly.get_error": "Gets the error text from another avatar.\nReturns nil if there is no error or if the avatar isnt loaded.",
+    "figura.docs.silly.get_nano_time": "Gets the value of the JVM's nanosecond clock.\nOnly useful for checking how long something takes.",
     "figura.docs.silly.update_avatar_size": "Updates the size of the avatar figura shows you.\nOnly useful in NBT-transforming contexts (like using addScript)",
     "figura.docs.silly.vehicle_field": "Accesses the current SillyVehicleAPI instance.",
 
