@@ -35,6 +35,7 @@
     "figura.docs.silly.set_subscribe_pings": "Force le suivi des pings d'un avatar. Utile pour de la communication inter-serveurs et inter-avatars.",
     "figura.docs.silly.get_error": "Récupère le texte d'erreur d'un autre avatar.\nRenvoie nil s'il n'y a pas d'erreur ou que l'avatar n'est pas chargé.",
     "figura.docs.silly.update_avatar_size": "Met à jour la taille de l'avatar que figura affiche.\nUniquement utile dans des contextes affectant les données NBT (comme par exemple en utilisant addScript)",
+    "figura.docs.silly.get_nano_time": "Récupère la veleur de l'horloge nanoseconde de la JVM.\nUniquement utile pour vérifier le temps que quelque chose prend.",
     "figura.docs.silly.vehicle_field": "Accède à l'instance actuelle de SillyVehicleAPI.",
 
     "figura.docs.silly.vehicle": "L'API de véhicules de Silly",
