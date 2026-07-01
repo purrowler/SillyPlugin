@@ -5,6 +5,7 @@
     "figura.docs.silly.set_pos": "Sets your player's position.\nsendPacket controls whether or not to send a MovePlayer packet instead.\nRequires cheats.",
     "figura.docs.silly.set_velocity": "Sets your player's velocity.\nRequires cheats.",
     "figura.docs.silly.set_rot": "Sets your player's rotation.\nRequires cheats.",
+    "figura.docs.silly.set_body_rot": "Sets your player's body rotation.\nThis is purely visual, and does not need cheats.",
     "figura.docs.silly.set_noclip": "Sets if your player should act like a spectator.\nRequires cheats.",
     "figura.docs.silly.cheats_enabled": "Returns if cheats are presently enabled.",
     "figura.docs.silly.upload_avatar": "Uploads your current avatar to cloud.",
@@ -36,8 +37,9 @@
     "figura.docs.silly.get_error": "Gets the error text from another avatar.\nReturns nil if there is no error or if the avatar isnt loaded.",
     "figura.docs.silly.get_nano_time": "Gets the value of the JVM's nanosecond clock.\nOnly useful for checking how long something takes.",
     "figura.docs.silly.update_avatar_size": "Updates the size of the avatar figura shows you.\nOnly useful in NBT-transforming contexts (like using addScript)",
-    "figura.docs.silly.vehicle_field": "Accesses the current SillyVehicleAPI instance.",
+    "figura.docs.silly.get_skin": "Gets the resource location of another player's skin.\nA callback is only required if a name is passed instead of a PlayerAPI.\nThere are no guarantees as to whether or not the callback will be fired.",
 
+    "figura.docs.silly.vehicle_field": "Accesses the current SillyVehicleAPI instance.",
     "figura.docs.silly.vehicle": "Silly's Vehicle API",
     "figura.docs.silly.vehicle.set_pos": "Sets your vehicle's position.\nRequires cheats.",
     "figura.docs.silly.vehicle.set_velocity": "Sets your vehicle's velocity.\nRequires cheats.",
@@ -84,10 +86,43 @@
     "sillyplugin.permissions.value.print": "Allow printing",
     "figura.badges.no_permissions.print": "Printing disallowed!",
     "sillyplugin.permissions.value.print.tooltip": "Whether or not the player can print.",
+    "sillyplugin.permissions.value.stereo_sounds": "Stereo Sounds",
+    "sillyplugin.permissions.value.stereo_sounds.tooltip": "Whether or not this player can use stereo (global) sounds.",
+    "figura.badges.no_permissions.stereo_sounds": "Stereo sounds disallowed!",
 
     "figura.docs.events.error": "Event that's called when your avatar errors.\nReturn true to stop the error.",
     "figura.docs.events.gui_render": "Event that's called when the GUI is rendering.\nUse the LuaGraphics wrapper to draw to the screen.",
     "figura.docs.events.move": "Event that's called when your velocity has been calculated.\nReturn a Vector3 to overwrite the velocity.\nRequires cheats to overwrite.",
 
-    "figura.docs.enum.silly_gui_element": "List of valid GUI elements that can be disabled in Sillyplugin."
+    "figura.docs.enum.silly_gui_element": "List of valid GUI elements that can be disabled in Sillyplugin.",
+
+    "figura.docs.collection": "Various useful functions for tables",
+    "figura.docs.silly.collection": "The local instance of CollectionAPI",
+    "figura.docs.collection.sum": "Gets the sum of all inputted numbers",
+    "figura.docs.collection.difference": "Gets the difference of all inputted numbers",
+    "figura.docs.collection.product": "Gets the product of all inputted numbers",
+    "figura.docs.collection.quotient": "Gets the quotient of all inputted numbers",
+    "figura.docs.collection.map": "Transforms each element of the array in-place",
+    "figura.docs.collection.each": "Runs a function on each element of the array",
+    "figura.docs.collection.flat_map": "Runs a function on each element and concatenates the resulting arrays",
+    "figura.docs.collection.filter": "Returns elements of the array matching a given predicate",
+
+    "figura.config.sillyplugin": "Sillyplugin",
+    "figura.config.sillyplugin.tooltip": "Sillyplugin's settings",
+    "figura.config.silly_on_nonhost": "Silly on non-host",
+    "figura.config.silly_on_nonhost.tooltip": "Whether or not the `silly` global should exist on non-host avatars.",
+    "figura.config.silly_on_host": "Silly on host",
+    "figura.config.silly_on_host.tooltip": "Disabling this will remove the silly global from your avatar only.\nUseful for testing without silly.",
+    "figura.config.cheats": "Cheats",
+    "figura.config.cheats.tooltip": "Enables the cheaty functions of sillyplugin.\nThis does not bypass the existing checks of the functions.",
+    "figura.config.sillyplugin_tweaks": "Sillyplugin: Figura Tweaks",
+    "figura.config.sillyplugin_tweaks.tooltip": "QoL tweaks of existing Figura functionality/APIs.",
+    "figura.config.toast_on_stereo": "Toast on stereo",
+    "figura.config.toast_on_stereo.tooltip": "Emits a toast whenever a stereo sound plays, telling you who played it.",
+    "figura.config.lenient_mode": "Lenient Mode",
+    "figura.config.lenient_mode.tooltip": "Stops some functions from strictly validating input.\nMay cause some slight issues in avatars.",
+    "figura.config.loosen_nb4u": "Loosen NoBadges4U",
+    "figura.config.loosen_nb4u.tooltip": "Replaces the overzealous NoBadges4U implementation with a more lenient one.",
+
+    "figura.emoji.silly": "Sillyplugin"
 }

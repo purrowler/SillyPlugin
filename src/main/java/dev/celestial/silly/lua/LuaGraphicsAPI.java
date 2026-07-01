@@ -1,22 +1,17 @@
-package dev.celestial.silly.helper;
+package dev.celestial.silly.lua;
 
 //? if >=1.21 {
-/*import net.minecraft.client.DeltaTracker;
-*///?}
-import com.mojang.blaze3d.platform.NativeImage;
+import net.minecraft.client.DeltaTracker;
+//?}
+import dev.celestial.silly.SillyUtil;
+import dev.celestial.silly.annotations.Alias;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.texture.AbstractTexture;
-import net.minecraft.client.renderer.texture.SimpleTexture;
-import net.minecraft.client.renderer.texture.TextureAtlas;
-import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.core.Vec3i;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.FormattedText;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.resources.Resource;
-import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import org.figuramc.figura.font.Emojis;
@@ -31,30 +26,26 @@ import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.math.vector.FiguraVec2;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.math.vector.FiguraVec4;
-import org.figuramc.figura.mixin.render.MissingTextureAtlasSpriteAccessor;
-import org.figuramc.figura.mixin.render.TextureAtlasAccessor;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
-import org.figuramc.figura.model.rendertasks.TextTask;
 import org.figuramc.figura.utils.LuaUtils;
 import org.figuramc.figura.utils.MathUtils;
 import org.figuramc.figura.utils.TextUtils;
-import org.joml.Matrix4f;
+import org.figuramc.figura.utils.ui.UIHelper;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.luaj.vm2.LuaError;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @LuaWhitelist
 @LuaTypeDoc(name = "LuaGraphicsAPI", value = "silly.lua_graphics")
-public class LuaGraphics {
+public class LuaGraphicsAPI implements AutoCloseable {
     private final GuiGraphics graphics;
+//    private Deque<Integer> tintStack = new ArrayDeque<>();
     private int pushedPoses = 0;
     private int scissors = 0;
     private boolean valid = true;
-    public LuaGraphics(GuiGraphics graphics) {
+    public LuaGraphicsAPI(GuiGraphics graphics) {
         this.graphics = graphics;
     }
 
@@ -98,21 +89,21 @@ public class LuaGraphics {
                 @LuaMethodOverload(
                         argumentTypes = { FiguraVec4.class },
                         argumentNames = { "region" },
-                        returnType = LuaGraphics.class
+                        returnType = LuaGraphicsAPI.class
                 ),
                 @LuaMethodOverload(
                         argumentNames = {"x", "y", "z", "w"},
                         argumentTypes = { Integer.class, Integer.class, Integer.class, Integer.class },
-                        returnType = LuaGraphics.class
+                        returnType = LuaGraphicsAPI.class
                 ),
                 @LuaMethodOverload(
                         argumentNames = {},
                         argumentTypes = {},
-                        returnType = LuaGraphics.class
+                        returnType = LuaGraphicsAPI.class
                 )
         }
     )
-    public LuaGraphics setScissors(Object x, Integer y, Integer z, Integer w) {
+    public LuaGraphicsAPI setScissors(Object x, Integer y, Integer z, Integer w) {
         _ensureValid();
         FiguraVec4 v = LuaUtils.parseVec4("setScissors", x, y, z, w, 0, 0, 0, 0);
         if (v.length() == 0) {
@@ -132,45 +123,32 @@ public class LuaGraphics {
                     @LuaMethodOverload(
                             argumentNames = { "texture", "pos", "region" },
                             argumentTypes = { FiguraTexture.class, FiguraVec2.class, FiguraVec4.class },
-                            returnType = LuaGraphics.class
+                            returnType = LuaGraphicsAPI.class
                     ),
                     @LuaMethodOverload(
                             argumentNames = { "texture", "pos" },
                             argumentTypes = { FiguraTexture.class, FiguraVec2.class },
-                            returnType = LuaGraphics.class
+                            returnType = LuaGraphicsAPI.class
                     ),
                     @LuaMethodOverload(
                             argumentNames = { "resourceLocation", "pos", "region" },
                             argumentTypes = { String.class, FiguraVec2.class, FiguraVec4.class },
-                            returnType = LuaGraphics.class
+                            returnType = LuaGraphicsAPI.class
                     ),
                     @LuaMethodOverload(
                             argumentNames = { "resourceLocation", "pos" },
                             argumentTypes = { String.class, FiguraVec2.class },
-                            returnType = LuaGraphics.class
+                            returnType = LuaGraphicsAPI.class
                     )
             }
     )
-    public LuaGraphics blit(@LuaNotNil Object texture, @LuaNotNil FiguraVec2 pos, FiguraVec4 region) {
+    public LuaGraphicsAPI blit(@LuaNotNil Object texture, @LuaNotNil FiguraVec2 pos, FiguraVec4 region) {
         _ensureValid();
+
         if (texture instanceof FiguraTexture tx) {
             region = region != null ? region : FiguraVec4.of(0,0,tx.getWidth(), tx.getHeight());
             //? if >=1.21.2 {
-/*//            graphics.blit(
-//                    RenderType::guiTextured,
-//                    tx.getLocation(),
-//                    (int)pos.x,
-//                    (int)pos.y,
-//                    0,
-//                    (int)region.x,
-//                    (int)region.y,
-//                    (int)region.z,
-//                    (int)region.w,
-//                    tx.getWidth(),
-//                    tx.getHeight(),
-//                    tx.getWidth(),
-//                    tx.getHeight());
-            graphics.blit(
+            /*graphics.blit(
                     RenderType::guiTextured,
                     tx.getLocation(),
                     (int)pos.x,
@@ -197,32 +175,18 @@ public class LuaGraphics {
             //?}
         } else if (texture instanceof String str) {
             //? if >=1.21 {
-            /*ResourceLocation loc = ResourceLocation.tryParse(str);
-            *///?} else {
-            ResourceLocation loc = new ResourceLocation(str);
-            //?}
+            ResourceLocation loc = ResourceLocation.tryParse(str);
+            //?} else {
+            /*ResourceLocation loc = new ResourceLocation(str);
+            *///?}
 
-            FiguraVec2 size = cachedTextureSizes.containsKey(loc) ? cachedTextureSizes.get(loc) : new FiguraVec2();
-            if (!cachedTextureSizes.containsKey(loc)) {
-                try {
-                    TextureAtlas atlas = Minecraft.getInstance().getModelManager().getAtlas(loc);
-                    TextureAtlasAccessor atlasAccessor = (TextureAtlasAccessor) atlas;
-                    size.x = atlasAccessor.getWidth();
-                    size.y = atlasAccessor.getHeight();
-                    cachedTextureSizes.put(loc, size);
-                } catch (Exception ignored) {}
-                try {
-                    Optional<Resource> resource = Minecraft.getInstance().getResourceManager().getResource(loc);
-                    NativeImage image = resource.isPresent() ? NativeImage.read(resource.get().open()) : null;
-                    if (image != null) {
-                        size.x = image.getWidth();
-                        size.y = image.getHeight();
-                        cachedTextureSizes.put(loc, size);
-                    }
-                } catch (Exception e) {
-                    throw new LuaError(e.getMessage());
-                }
-            }
+            FiguraVec2 size = cachedTextureSizes.computeIfAbsent(loc, (l) -> {
+                var s = new FiguraVec2();
+                var img = SillyUtil.getImage(l);
+                s.x = img.getWidth();
+                s.y = img.getHeight();
+                return s;
+            });
             region = region != null ? region : FiguraVec4.of(0,0,size.x, size.y);
 
             //? if >=1.21.2 {
@@ -247,26 +211,26 @@ public class LuaGraphics {
                     @LuaMethodOverload(
                             argumentNames = { "string", "pos", "width" },
                             argumentTypes = { String.class, FiguraVec2.class, Integer.class },
-                            returnType = LuaGraphics.class
+                            returnType = LuaGraphicsAPI.class
                     ),
                     @LuaMethodOverload(
                             argumentNames = { "string", "pos" },
                             argumentTypes = { String.class, FiguraVec2.class },
-                            returnType = LuaGraphics.class
+                            returnType = LuaGraphicsAPI.class
                     ),
                     @LuaMethodOverload(
                             argumentNames = { "string", "x", "y", "width" },
                             argumentTypes = { String.class, Integer.class, Integer.class, Integer.class },
-                            returnType = LuaGraphics.class
+                            returnType = LuaGraphicsAPI.class
                     ),
                     @LuaMethodOverload(
                             argumentNames = { "string", "x", "y" },
                             argumentTypes = { String.class, Integer.class, Integer.class },
-                            returnType = LuaGraphics.class
+                            returnType = LuaGraphicsAPI.class
                     )
             }
     )
-    public LuaGraphics blitString(@LuaNotNil String string, @LuaNotNil Object x, Integer y, Integer width) {
+    public LuaGraphicsAPI blitString(@LuaNotNil String string, @LuaNotNil Object x, Integer y, Integer width) {
         _ensureValid();
         if (width == null) width = graphics.guiWidth();
         Integer finalX = null;
@@ -296,32 +260,52 @@ public class LuaGraphics {
                     @LuaMethodOverload(
                             argumentNames = { "stackString", "pos" },
                             argumentTypes = { String.class, FiguraVec2.class },
-                            returnType = LuaGraphics.class
+                            returnType = LuaGraphicsAPI.class
                     ),
                     @LuaMethodOverload(
                             argumentNames = { "stackString", "x", "y" },
                             argumentTypes = { String.class, Integer.class, Integer.class },
-                            returnType = LuaGraphics.class
+                            returnType = LuaGraphicsAPI.class
                     ),
                     @LuaMethodOverload(
                             argumentNames = { "itemStack", "pos" },
                             argumentTypes = { ItemStackAPI.class, FiguraVec2.class },
-                            returnType = LuaGraphics.class
+                            returnType = LuaGraphicsAPI.class
                     ),
                     @LuaMethodOverload(
                             argumentNames = { "itemStack", "x", "y" },
                             argumentTypes = { ItemStackAPI.class, Integer.class, Integer.class },
-                            returnType = LuaGraphics.class
+                            returnType = LuaGraphicsAPI.class
                     )
             }
     )
-    public LuaGraphics blitItem(@LuaNotNil Object string, @LuaNotNil Object x, Integer y) {
+    public LuaGraphicsAPI blitItem(@LuaNotNil Object string, @LuaNotNil Object x, Integer y) {
         _ensureValid();
         FiguraVec2 pos = LuaUtils.parseVec2("blitItem", x, y);
         ItemStack stack = LuaUtils.parseItemStack("blitItem", string);
         graphics.renderFakeItem(stack, (int)pos.x, (int)pos.y);
         return this;
     }
+
+//    @LuaWhitelist
+//    public LuaGraphics pushTint(@LuaNotNil FiguraVec4 col) {
+//        _ensureValid();
+//        Vector4i colorInt = new Vector4i((int) (col.x * 255), (int) (col.y * 255), (int) (col.z * 255), (int) (col.w * 255));
+//        if (colorInt.x() > 255 || colorInt.y() > 255 || colorInt.z() > 255 || colorInt.w() > 255 | colorInt.x() < 0 || colorInt.y() < 0 || colorInt.z() < 0 | colorInt.w() < 0)
+//            throw new LuaError("Invalid color: " + colorInt.toString());
+//        int finalInt = colorInt.z << 24 | colorInt.x << 16 | colorInt.y << 8 | colorInt.z;
+//        tintStack.push(finalInt);
+//
+//        return this;
+//    }
+
+//    @LuaWhitelist
+//    public LuaGraphics popTint() {
+//        _ensureValid();
+//        if (tintStack.isEmpty()) throw new LuaError("Tried to pop tint, but it was empty! (mismatched pop/push?)");
+//        tintStack.pop();
+//        return this;
+//    }
 
     @LuaWhitelist
     @LuaMethodDoc(
@@ -330,28 +314,42 @@ public class LuaGraphics {
                     @LuaMethodOverload(
                             argumentNames = { "matrix" },
                             argumentTypes = { FiguraMat4.class },
-                            returnType = LuaGraphics.class
+                            returnType = LuaGraphicsAPI.class
                     )
-            }
+            },
+            aliases = { "pushPose" }
     )
-    public LuaGraphics pushPoseMatrix(FiguraMat4 matrix) {
+    public LuaGraphicsAPI pushPoseMatrix(FiguraMat4 matrix) {
         _ensureValid();
         _pushPose();
 
         //? if >=1.21 {
-        /*graphics.pose().mulPose(matrix.toMatrix4f());
-        *///?} else {
-        graphics.pose().mulPoseMatrix(matrix.toMatrix4f());
-        //?}
+        graphics.pose().mulPose(matrix.toMatrix4f());
+        //?} else {
+        /*graphics.pose().mulPoseMatrix(matrix.toMatrix4f());
+        *///?}
+        return this;
+    }
+
+    @LuaWhitelist @Alias
+    public LuaGraphicsAPI pushPose(FiguraMat4 matrix) { return pushPoseMatrix(matrix); }
+
+    @LuaWhitelist
+    public LuaGraphicsAPI fill(FiguraVec3 color, FiguraVec4 region) {
+        _ensureValid();
+        Vec3i colorInt = new Vec3i((int) (color.x * 255), (int) (color.y * 255), (int) (color.z * 255));
+        if (colorInt.getX() > 255 || colorInt.getY() > 255 || colorInt.getZ() > 255 | colorInt.getX() < 0 || colorInt.getY() < 0 || colorInt.getZ() < 0)
+            throw new LuaError("Invalid color: " + colorInt.toShortString());
+        graphics.fill((int) region.x, (int) region.y, (int) (region.z + region.x), (int) (region.w + region.y), 0xFF000000 | (colorInt.getX() << 16) | (colorInt.getY() << 8) | (colorInt.getZ()));
         return this;
     }
 
     @LuaWhitelist
     @LuaMethodDoc(value = "silly.lua_graphics.pop_pose",
             overloads =
-                    {@LuaMethodOverload(returnType = LuaGraphics.class)}
+                    {@LuaMethodOverload(returnType = LuaGraphicsAPI.class)}
     )
-    public LuaGraphics popPose() {
+    public LuaGraphicsAPI popPose() {
         _ensureValid();
         _popPose();
         return this;
@@ -364,11 +362,11 @@ public class LuaGraphics {
                     @LuaMethodOverload(
                             argumentTypes = { LivingEntityAPI.class, FiguraVec2.class, FiguraVec3.class },
                             argumentNames = { "entity", "pos", "rot" },
-                            returnType = LuaGraphics.class
+                            returnType = LuaGraphicsAPI.class
                     )
             }
     )
-    public LuaGraphics blitEntity(@LuaNotNil LivingEntityAPI<? extends LivingEntity> entity, @LuaNotNil FiguraVec2 pos, @LuaNotNil FiguraVec3 rot) {
+    public LuaGraphicsAPI blitEntity(@LuaNotNil LivingEntityAPI<? extends LivingEntity> entity, @LuaNotNil FiguraVec2 pos, @LuaNotNil FiguraVec3 rot) {
         _ensureValid();
         FiguraVec3 rot2 = rot.copy();
         rot2.scale(MathUtils.DEG_TO_RAD);
@@ -378,14 +376,23 @@ public class LuaGraphics {
         graphics.pose().scale(2,-2,2);
         graphics.pose().pushPose();
         graphics.pose().scale(16,16,16);
+
+        // poked around in the code and supposedly this hides the nameplate.
+        UIHelper.paperdoll = true;
         //? if >=1.21 {
-        /*InventoryScreen.renderEntityInInventory(graphics, 0, 0, 1, new Vector3f(), quat, null, entity.getEntity());
-        *///?} else {
-        InventoryScreen.renderEntityInInventory(graphics, 0, 0, 1, quat, null, entity.getEntity());
-        //?}
+        InventoryScreen.renderEntityInInventory(graphics, 0, 0, 1, new Vector3f(), quat, null, entity.getEntity());
+        //?} else {
+        /*InventoryScreen.renderEntityInInventory(graphics, 0, 0, 1, quat, null, entity.getEntity());
+        *///?}
+        UIHelper.paperdoll = false;
 
         graphics.pose().popPose();
         graphics.pose().popPose();
         return this;
+    }
+
+    @Override
+    public void close() throws Exception {
+        exit();
     }
 }

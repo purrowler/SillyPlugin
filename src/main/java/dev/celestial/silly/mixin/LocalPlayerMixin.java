@@ -34,13 +34,21 @@ public abstract class LocalPlayerMixin extends Player {
         return silly.mayFly.getValue();
     }
     *///?} else {
-    @Redirect(method = "aiStep", at = @At(value = "FIELD", target = "Lnet/minecraft/world/entity/player/Abilities;mayfly:Z", opcode = Opcodes.GETFIELD))
-    public boolean getAbilitiesMixin(Abilities instance) {
+    @WrapOperation(
+            method = "aiStep",
+            at = @At(
+                    value = "FIELD",
+                    target = "Lnet/minecraft/world/entity/player/Abilities;mayfly:Z",
+                    opcode = Opcodes.GETFIELD
+            )
+    )
+    public boolean getAbilitiesMixin(Abilities instance, Operation<Boolean> original) {
+        boolean orig = original.call(instance);
         SillyAPI silly = SillyPlugin.hostInstance;
-        if (silly == null) return instance.mayfly;
-        if (!silly.mayFly.isOverridden()) return instance.mayfly;
-        if (!silly.cheatsEnabled()) return instance.mayfly;
-        if (AvatarManager.panic) return instance.mayfly;
+        if (silly == null) return orig;
+        if (!silly.mayFly.isOverridden()) return orig;
+        if (!silly.cheatsEnabled()) return orig;
+        if (AvatarManager.panic) return orig;
         return silly.mayFly.getValue();
     }
     //?}

@@ -50,7 +50,8 @@ public class AvatarMixin implements AvatarExtensions {
         silly = instance;
         silly$setUserData(SillyAPI.class, instance);
         silly$setUserData(BackportsAPI.class, instance.backports);
-        instance.runtime.setGlobal("silly_backports", instance.backports);
+        silly$setUserData(SillyProfiler.class, instance.profiler);
+        silly$setUserData(SillyAPI.SillyVehicleAPI.class, instance.vehicle);
         return silly;
     }
 

@@ -1,11 +1,9 @@
 package dev.celestial.silly.mixin;
 
+import dev.celestial.silly.SillySettings;
 import dev.celestial.silly.SillyUtil;
-import dev.celestial.silly.helper.LuaGraphics;
-import dev.celestial.silly.lua.BackportsAPI;
-import dev.celestial.silly.lua.DevAPI;
-import dev.celestial.silly.lua.SillyAPI;
-import dev.celestial.silly.lua.SillyProfiler;
+import dev.celestial.silly.lua.LuaGraphicsAPI;
+import dev.celestial.silly.lua.*;
 import dev.celestial.silly.not_a_mixin.AvatarExtensions;
 import org.figuramc.figura.lua.FiguraAPIManager;
 import org.figuramc.figura.lua.FiguraLuaRuntime;
@@ -32,14 +30,30 @@ public class FiguraAPIManagerMixin {
     static {
         WHITELISTED_CLASSES.add(SillyAPI.class);
         WHITELISTED_CLASSES.add(BackportsAPI.class);
-        WHITELISTED_CLASSES.add(LuaGraphics.class);
+        WHITELISTED_CLASSES.add(LuaGraphicsAPI.class);
         WHITELISTED_CLASSES.add(SillyProfiler.class);
         WHITELISTED_CLASSES.add(SillyAPI.SillyVehicleAPI.class);
+        WHITELISTED_CLASSES.add(CollectionAPI.class);
+
         if (SillyUtil.DEV_MODE) {
             WHITELISTED_CLASSES.add(DevAPI.class);
             API_GETTERS.put("silly_dev", r -> r.owner.isHost ? new DevAPI(r) : null);
         }
 
-        API_GETTERS.put("silly", r -> ((AvatarExtensions)r.owner).silly$setSilly(new SillyAPI(r)));
+        API_GETTERS.put("silly", r -> {
+            var should_add = r.owner.isHost ? SillySettings.SILLY_ON_HOST.getBool() : SillySettings.SILLY_ON_NONHOST.getBool();
+
+            // has to be initialized regardless, for stuff like the profiler.
+            var silly = ((AvatarExtensions)r.owner).silly$setSilly(new SillyAPI(r));
+
+            return should_add ? silly : null;
+        });
+
+        // backward compat w/ 1.1.1
+        // technically deprecated
+        API_GETTERS.put("silly_backports", r -> {
+            var should_add = r.owner.isHost ? SillySettings.SILLY_ON_HOST.getBool() : SillySettings.SILLY_ON_NONHOST.getBool();
+            return should_add ? ((AvatarExtensions)r.owner).silly$getSilly().backports : null;
+        });
     }
 }

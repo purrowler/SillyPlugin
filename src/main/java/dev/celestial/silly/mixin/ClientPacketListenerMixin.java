@@ -1,5 +1,7 @@
 package dev.celestial.silly.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import dev.celestial.silly.SillySettings;
 import net.minecraft.client.Minecraft;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -26,9 +28,30 @@ public class ClientPacketListenerMixin {
     @Shadow
     private ClientLevel level;
 
+    //? if >=1.21.4 {
+    /*@WrapOperation(method = "handleSetTime", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientLevel;setTimeFromServer(JJZ)V"))
+    public void silly$daytimeOverride(ClientLevel instance, long l, long m, boolean bl, Operation<Void> original) {
+        var hostSilly = SillyPlugin.hostInstance;
+        if (hostSilly == null || !(hostSilly.cheatsEnabled() && hostSilly.dayTime.isOverridden())) {
+            original.call(instance, l, m, bl);
+            return;
+        }
+        original.call(instance, l, hostSilly.dayTime.getValue(), false);
+    }
+    *///?} else {
+    @WrapOperation(method = "handleSetTime", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientLevel;setDayTime(J)V"))
+    public void silly$daytimeOverride(ClientLevel instance, long l, Operation<Void> original) {
+        var hostSilly = SillyPlugin.hostInstance;
+        if (hostSilly == null || !(hostSilly.cheatsEnabled() && hostSilly.dayTime.isOverridden())) {
+            original.call(instance, l);
+            return;
+        }
+        original.call(instance, hostSilly.dayTime.getValue());
+    }//?}
+
     @Inject(method = "handleBlockUpdate", at = @At("HEAD"), cancellable = true)
     public void handleBlockUpdateMixin(ClientboundBlockUpdatePacket clientboundBlockUpdatePacket, CallbackInfo ci) {
-        if (level == null || !level.isClientSide) return;
+        if (level == null || !level.isClientSide || !SillySettings.CHEATS.getBool()) return;
         BlockPos updated = clientboundBlockUpdatePacket.getPos();
         if (SillyPlugin.fakeExistsAt(updated, false)) {
             BlockState state = clientboundBlockUpdatePacket.getBlockState();

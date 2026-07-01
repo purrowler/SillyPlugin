@@ -9,26 +9,24 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.apache.commons.lang3.tuple.Pair;
 import org.figuramc.figura.avatar.AvatarManager;
+import org.figuramc.figura.font.Emojis;
 import org.figuramc.figura.permissions.PermissionManager;
 import org.figuramc.figura.permissions.Permissions;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.awt.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SillyPlugin {
     public static final String MOD_ID = "sillyplugin";
+    public static final Color COLOR = new Color(151,79,219);
     public static Logger LOGGER = LoggerFactory.getLogger("SillyPlugin");
     public static ISillyLoader Loader;
     @Nullable
     public static SillyAPI hostInstance;
-    public static Permissions BUMPSCOCITY = new Permissions("BUMPSCOCITY", 0, 1000, 0, 0, 0, 0, 0);
-    public static Permissions FAKE_BLOCKS = new Permissions("FAKE_BLOCKS", 0, 0, 0, 0, 0);
-    public static Permissions PRINT = new Permissions("PRINT", 0, 1,1,1,1);
-    public static Permissions SCRIPT_EXEC = new Permissions("SCRIPT_EXEC", 0, 2, 2, 2, 2, 2, 2);
-    public static Permissions EXEC_TIME = new Permissions("EXEC_TIME", 0, 1000 * 60, 0, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
     public static ConcurrentHashMap<UUID, ConcurrentHashMap<BlockPos, BlockState>> FakeBlocks = new ConcurrentHashMap<>();
     public static ConcurrentHashMap<BlockPos, Pair<BlockState, BlockEntity>> RealBlocks = new ConcurrentHashMap<>();
 
@@ -80,6 +78,6 @@ public class SillyPlugin {
 
     public static void initialize(ISillyLoader loader) {
         Loader = loader;
-        PermissionManager.CUSTOM_PERMISSIONS.put("sillyplugin", List.of(BUMPSCOCITY, FAKE_BLOCKS, SCRIPT_EXEC, EXEC_TIME, PRINT));
+        SillySettings.classload();
     }
 }

@@ -63,7 +63,7 @@ public class BackportsAPI {
             Pair<UUID, String> item = callerStack.get().pop();
             UUID uuid = item.getLeft();
             if (uuid != expectedUUID || !Objects.equals(expectedContext, item.getRight())) {
-                String msg = "silly_backports:getCaller() stack error (expected " + formatStackPair(expected)
+                String msg = "caller stack error (expected " + formatStackPair(expected)
                         + ", got " + formatStackPair(item);
                 if (DevAPI.throw_on_bad_call_stack)
                     throw new IllegalStateException(msg);
@@ -76,7 +76,7 @@ public class BackportsAPI {
             }
         }
         catch (NoSuchElementException e) {
-            String msg = "silly_backports:getCaller() stack error (expected " + formatStackPair(expected)
+            String msg = "caller stack error (expected " + formatStackPair(expected)
                     + ", was empty";
             if (DevAPI.throw_on_bad_call_stack)
                 throw new IllegalStateException(msg);

@@ -1,8 +1,9 @@
-package dev.celestial.silly.mixin;
+package dev.celestial.silly.mixin.docs;
 
 import dev.celestial.silly.SillyEnums;
-import dev.celestial.silly.helper.LuaGraphics;
+import dev.celestial.silly.lua.LuaGraphicsAPI;
 import dev.celestial.silly.lua.BackportsAPI;
+import dev.celestial.silly.lua.CollectionAPI;
 import dev.celestial.silly.lua.SillyAPI;
 import dev.celestial.silly.lua.SillyProfiler;
 import org.figuramc.figura.lua.docs.FiguraDocsManager;
@@ -25,8 +26,9 @@ public class FiguraDocsManagerMixin {
     private static Map<Class<?>, String> NAME_MAP;
 
     static {
-        GLOBAL_CHILDREN.put("silly", List.of(SillyAPI.class, BackportsAPI.class, SillyAPI.SillyVehicleAPI.class, SillyProfiler.class, LuaGraphics.class));
+        GLOBAL_CHILDREN.put("silly", List.of(SillyAPI.class, BackportsAPI.class, SillyAPI.SillyVehicleAPI.class, SillyProfiler.class, LuaGraphicsAPI.class, CollectionAPI.class));
 
-        NAME_MAP.put(SillyEnums.GUI_ELEMENT.class, "GuiElement");
+        NAME_MAP.put(SillyEnums.GUI_ELEMENT.class, "SillyGUIElement");
+        NAME_MAP.put(SillyEnums.FORMAT_LEVEL.class, "SillyFormatLevel");
     }
 }

@@ -20,4 +20,11 @@ public class SillyEnums {
         SUBTITLE_OVERLAY,
         ARMOR_BAR
     }
+
+    public enum FORMAT_LEVEL {
+        NONE,
+        LIGHT,
+        HEAVY,
+        AST
+    }
 }

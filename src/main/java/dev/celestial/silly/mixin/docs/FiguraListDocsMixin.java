@@ -1,7 +1,6 @@
-package dev.celestial.silly.mixin;
+package dev.celestial.silly.mixin.docs;
 
 import dev.celestial.silly.SillyEnums;
-import dev.celestial.silly.SillyPlugin;
 import org.figuramc.figura.lua.docs.FiguraListDocs;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;

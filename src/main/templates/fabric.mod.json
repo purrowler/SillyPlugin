@@ -31,6 +31,5 @@
             "environment": "*"
         }
     ],
-    "accessWidener": "sillyplugin.accesswidener",
     "license": "${mod_license}"
 }

@@ -1,5 +1,6 @@
 package dev.celestial.silly.mixin;
 
+import dev.celestial.silly.SillyPermissions;
 import dev.celestial.silly.SillyPlugin;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.lua.FiguraLuaPrinter;
@@ -26,7 +27,7 @@ public class FiguraLuaPrinterMixin {
         cir.setReturnValue(new VarArgFunction() {
             @Override
             public Varargs invoke(Varargs args) {
-                if (runtime.owner.permissions.get(SillyPlugin.PRINT) == 1)
+                if (runtime.owner.permissions.get(SillyPermissions.PRINT) == 1)
                     return func.invoke(args);
                 return LuaValue.NIL;
             }

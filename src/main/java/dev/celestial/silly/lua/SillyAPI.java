@@ -1,27 +1,42 @@
 package dev.celestial.silly.lua;
 
+import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.minecraft.MinecraftSessionService;
+//? if >=1.21.1 {
+import com.mojang.authlib.yggdrasil.ProfileResult;
+//?}
+import com.mojang.blaze3d.platform.NativeImage;
+import com.pngencoder.PngEncoder;
+import dev.celestial.silly.*;
 import dev.celestial.silly.annotations.Alias;
 import dev.celestial.silly.annotations.AutoProperty;
 import dev.celestial.silly.annotations.AutoPropertyWhitelist;
 import dev.celestial.silly.annotations.ReadOnly;
+import dev.celestial.silly.helper.CallerContext;
 import dev.celestial.silly.helper.Overridable;
-import dev.celestial.silly.SillyEnums;
-import dev.celestial.silly.SillyPlugin;
-import dev.celestial.silly.SillyUtil;
+import dev.celestial.silly.helper.SillyScriptVisitor;
 import dev.celestial.silly.mixin.AvatarAccessor;
 import dev.celestial.silly.mixin.LuaScriptParserInvokers;
+import dev.celestial.silly.mixin.RuntimeAccessor;
 import dev.celestial.silly.not_a_mixin.AvatarExtensions;
 import net.minecraft.ChatFormatting;
+import net.minecraft.Util;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.resources.SkinManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.monster.SpellcasterIllager;
 import net.minecraft.world.entity.player.Abilities;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -36,8 +51,12 @@ import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.avatar.local.LocalAvatarFetcher;
 import org.figuramc.figura.backend2.NetworkStuff;
 import org.figuramc.figura.config.Configs;
+import org.figuramc.figura.font.Emojis;
 import org.figuramc.figura.gui.widgets.lists.AvatarList;
 import org.figuramc.figura.lua.*;
+import org.figuramc.figura.lua.api.AvatarAPI;
+import org.figuramc.figura.lua.api.TextureAPI;
+import org.figuramc.figura.lua.api.entity.PlayerAPI;
 import org.figuramc.figura.lua.api.ping.PingArg;
 import org.figuramc.figura.lua.api.ping.PingFunction;
 import org.figuramc.figura.lua.api.world.BlockStateAPI;
@@ -49,15 +68,31 @@ import org.figuramc.figura.lua.docs.LuaTypeDoc;
 import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.math.vector.FiguraVec2;
 import org.figuramc.figura.math.vector.FiguraVec3;
+import org.figuramc.figura.mixin.input.KeyMappingAccessor;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import org.figuramc.figura.parsers.LuaScriptParser;
 import org.figuramc.figura.permissions.PermissionManager;
 import org.figuramc.figura.permissions.PermissionPack;
 import org.figuramc.figura.permissions.Permissions;
+import org.figuramc.figura.utils.ColorUtils;
 import org.figuramc.figura.utils.EntityUtils;
 import org.figuramc.figura.utils.LuaUtils;
+import org.figuramc.figura.utils.TextUtils;
 import org.luaj.vm2.*;
+import org.luaj.vm2.ast.Chunk;
+import org.luaj.vm2.ast.NameResolver;
 import org.luaj.vm2.lib.VarArgFunction;
+import org.luaj.vm2.lib.ZeroArgFunction;
+import org.luaj.vm2.parser.LuaParser;
 
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriter;
+import java.awt.image.BufferedImage;
+import java.awt.image.IndexColorModel;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.StringReader;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -82,6 +117,7 @@ public class SillyAPI {
     public Set<SillyEnums.GUI_ELEMENT> disabledElements = new HashSet<>();
     public boolean fakeBlocksDisabled = false;
     public Set<UUID> customSubscriptions = new HashSet<>();
+    public Set<String> hiddenPlayers = new HashSet<>();
 
     public SillyAPI(FiguraLuaRuntime runtime) {
         this.avatar = runtime.owner;
@@ -95,11 +131,28 @@ public class SillyAPI {
         if (local) SillyPlugin.hostInstance = this;
     }
 
+    @LuaWhitelist
+    public SillyAPI setPlayerVisible(@LuaNotNil String player, Boolean visible) {
+        if (visible) hiddenPlayers.remove(player);
+        else hiddenPlayers.add(player);
+        return this;
+    }
+
+    @LuaWhitelist
+    public Boolean isPlayerVisible() {
+        var hostInstance = SillyPlugin.hostInstance;
+        if (hostInstance == null) return true;
+        return hostInstance.hiddenPlayers.contains(avatar.owner.toString()) || hostInstance.hiddenPlayers.contains(avatar.entityName);
+    }
+
     @LuaFieldDoc("silly.profiler")
     @AutoProperty @ReadOnly public SillyProfiler profiler = new SillyProfiler();
 
     @LuaFieldDoc("silly.backports")
     @AutoProperty @ReadOnly public BackportsAPI backports;
+
+    @LuaFieldDoc("silly.collection")
+    @AutoProperty @ReadOnly public CollectionAPI collection = CollectionAPI.Instance;
 
     public void onPanic(boolean panic) {
         if (!local) return;
@@ -157,6 +210,7 @@ public class SillyAPI {
     }
 
     public void cheatExecutor(Consumer<LocalPlayer> callback, boolean mustBeHost) {
+        if (!SillySettings.CHEATS.getBool()) return;
         if (mustBeHost && !local) return;
         if (!(minecraft.player instanceof LocalPlayer)) return;
         if (minecraft.gameMode == null) return;
@@ -166,7 +220,13 @@ public class SillyAPI {
         ServerData servDt = con.getServerData();
         Component motd = servDt != null ? servDt.motd : Component.empty();
 
-        if (!(minecraft.player.hasPermissions(2)
+        // turns out motd can, under some circumstances, be null.
+        // i don't know what circumstances, but it can happen.
+        //noinspection ReassignedVariable,ConstantValue
+        if (motd == null) motd = Component.empty();
+
+        if (!(
+                minecraft.player.hasPermissions(2)
                 || minecraft.gameMode.getPlayerMode().isCreative()
                 || minecraft.isSingleplayer()
                 || motd.getString().contains("§s§i§l§l§y§p§l§u§g§i§n")
@@ -174,7 +234,7 @@ public class SillyAPI {
                 // formatting codes that do nothing. (COUGH COUGH
                 // PAPER).
                 || motd.getString().contains("§s§i§y§p§u§g§i")
-        )) return;
+        ) || (motd.getString().contains("§!§s§i§l§l§y§p§l§u§g§i§n") || motd.getString().contains("§!§s§i§y§p§u§g§i"))) return;
         callback.accept(minecraft.player);
     }
 
@@ -195,6 +255,99 @@ public class SillyAPI {
         if (avatar.scriptError)
             return avatar.errorText;
         return null;
+    }
+
+    @LuaWhitelist
+    public void stopAvatar(String msg) {
+        msg = msg != null ? msg : "Avatar stopped execution!";
+        avatar.scriptError = true;
+        avatar.errorText = TextUtils.tryParseJson(msg).copy().withStyle(ColorUtils.Colors.LUA_ERROR.style);
+        avatar.clearParticles();
+        avatar.clearSounds();
+        avatar.closeBuffers();
+        avatar.closeStreams();
+
+        // yoinked from goofy
+        ((RuntimeAccessor) runtime).getSetHookFunction().invoke(LuaValue.varargsOf(new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                return LuaValue.valueOf(0);
+            }
+        }, LuaValue.EMPTYSTRING, LuaValue.valueOf(1)));
+        avatar.luaRuntime = null;
+    }
+
+    @LuaWhitelist
+    public Component applyEmojis(@LuaNotNil String text) {
+        return Emojis.applyEmojis(TextUtils.tryParseJson(text));
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc(
+            value = "silly.get_skin",
+            overloads = {
+                    @LuaMethodOverload(
+                            argumentNames = { "player" },
+                            argumentTypes = { PlayerAPI.class },
+                            returnType = String.class
+                    ),
+                    @LuaMethodOverload(
+                            argumentNames = { "name", "callback" },
+                            argumentTypes = { String.class, LuaFunction.class }
+                    )
+            }
+    )
+    public FiguraTexture getSkin(@LuaNotNil Object param, LuaFunction callback) {
+        if (param instanceof PlayerAPI plr) {
+            //? if >=1.21.1 {
+            var skin = ((AbstractClientPlayer)plr.getEntity()).getSkin();
+            return avatar.registerTexture("silly.getSkin", SillyUtil.getImage(skin.texture()), true);
+             //?} else {
+            /*var skin = ((AbstractClientPlayer)plr.getEntity()).getSkinTextureLocation();
+            return avatar.registerTexture("silly.getSkin(" + plr.getName() + ")", SillyUtil.getImage(skin), true);
+            *///?}
+        } else if (param instanceof String name) {
+            UUID uuid = SillyUtil.getUUID(name);
+            Util.backgroundExecutor().execute(() -> {
+                //? if >=1.21.1 {
+                ProfileResult profile = minecraft.getMinecraftSessionService().fetchProfile(uuid, false);
+                if (profile == null) {
+                    minecraft.execute(() -> {
+                        if (avatar.luaRuntime == null || avatar.scriptError) return;
+                        avatar.luaRuntime.error(new LuaError("Could not find user " + name));
+                    });
+                    return;
+                }
+                var skin = minecraft.getSkinManager().getOrLoad(profile.profile());
+                skin.thenAcceptAsync(playerSkin -> {
+                    //? if >=1.21.4 {
+                    /*playerSkin.ifPresent(sk -> {
+                    *///?} else {
+                        var sk = playerSkin;
+                        //?}
+                        try (CallerContext ctx = BackportsAPI.openCallerContext(avatar.owner, null, "silly.getSkin.callback")) {
+                            if (avatar.luaRuntime == null || avatar.scriptError) return;
+                            SillyUtil.logAsAvatar(avatar, SillyPlugin.LOGGER::info, "Loc: " + sk.texture().toString());
+                            var tx = avatar.registerTexture("silly.getSkin", SillyUtil.getImage(sk.texture()), true);
+                            callback.invoke(runtime.typeManager.javaToLua(tx));
+                        } catch (Exception e) {
+                            avatar.luaRuntime.error(e);
+                        }
+                    //? if >=1.21.4 {
+                    /*});
+                    *///?}
+
+                }, minecraft);
+                //?} else {
+                    /*GameProfile profile = minecraft.getMinecraftSessionService().fillProfileProperties(new GameProfile(uuid, null), true);
+                    var skin = minecraft.getSkinManager().getInsecureSkinLocation(profile);
+                    callback.invoke(LuaValue.valueOf(skin.toString()));
+                *///?}
+            });
+            return null;
+        } else {
+            throw new LuaError("Parameter to getSkin must be either string or PlayerAPI!");
+        }
     }
 
     @LuaWhitelist
@@ -273,10 +426,6 @@ public class SillyAPI {
             )
     })
     public SillyAPI setGuiMatrix(FiguraMat4 mat) {
-        if (mat == null) {
-            guiMat.setValue(null);
-            return this;
-        }
         guiMat.setValue(mat);
         return this;
     }
@@ -317,6 +466,47 @@ public class SillyAPI {
             setFriction(val.checknumber().tofloat());
         }
         return this;
+    }
+
+    // this is just extura's implementation.
+    // my ass would NOT have figured this out
+    @LuaWhitelist
+    public void setBindPressed(@LuaNotNil String id, boolean state) {
+        if (!local) return;
+        KeyMapping key = KeyMappingAccessor.getAll().get(id);
+        if (key == null)
+            throw new LuaError("Failed to find key: \"" + id + "\"");
+        key.setDown(state);
+        var getBypassedIdiot = (dev.celestial.silly.mixin.KeyMappingAccessor)key;
+        getBypassedIdiot.silly$setClickCount(getBypassedIdiot.silly$getClickCount()+1);
+    }
+
+    @LuaWhitelist
+    public String saveTextureIndexed(@LuaNotNil FiguraTexture texture) {
+        NativeImage img = texture.copy();
+        BufferedImage img2 = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        for (int x = 0; x < img.getWidth(); x++) {
+            for (int y = 0; y < img.getHeight(); y++) {
+                //? if >=1.21.4 {
+                /*img2.setRGB(x,y,img.getPixel(x,y));
+                 *///?} else {
+                int col = img.getPixelRGBA(x,y);
+                int a = (col >> 24) & 0xFF;
+                int b = (col >> 16) & 0xFF;
+                int g = (col >> 8) & 0xFF;
+                int r = col & 0xFF;
+                col = (a << 24) | (r << 16) | (g << 8) | b;
+                img2.setRGB(x,y,col);
+                //?}
+            }
+        }
+        img.close();
+        PngEncoder enc = new PngEncoder();
+        var bytes = enc.withBufferedImage(img2)
+                .withCompressionLevel(9)
+                .withTryIndexedEncoding(true)
+                .toBytes();
+        return Base64.getEncoder().encodeToString(bytes);
     }
 
     @LuaWhitelist
@@ -465,7 +655,8 @@ public class SillyAPI {
     @LuaWhitelist
     @LuaMethodDoc("silly.update_avatar_size")
     public void updateAvatarSize() {
-        avatar.fileSize = ((AvatarAccessor)avatar).silly$getFileSize();
+        if (local)
+            avatar.fileSize = ((AvatarAccessor)avatar).silly$getFileSize();
     }
 
 
@@ -488,7 +679,7 @@ public class SillyAPI {
     @LuaWhitelist
     @LuaMethodDoc("silly.get_bumpscocity")
     public Integer getBumpscocity() {
-        int value = avatar.permissions.get(SillyPlugin.BUMPSCOCITY);
+        int value = avatar.permissions.get(SillyPermissions.BUMPSCOCITY);
         if (value > 1000) {
             throw new LuaError("Dear god, this is way too much bumpscocity! (1000 max)");
         }
@@ -568,11 +759,11 @@ public class SillyAPI {
 
     private void setBlockInternal(BlockPos pos, BlockState state) {
         cheatExecutor(plr -> {
-            if (avatar.permissions.get(SillyPlugin.FAKE_BLOCKS) != 1) {
-                avatar.noPermissions.add(SillyPlugin.FAKE_BLOCKS);
+            if (avatar.permissions.get(SillyPermissions.FAKE_BLOCKS) != 1) {
+                avatar.noPermissions.add(SillyPermissions.FAKE_BLOCKS);
                 return;
             } else {
-                avatar.noPermissions.remove(SillyPlugin.FAKE_BLOCKS);
+                avatar.noPermissions.remove(SillyPermissions.FAKE_BLOCKS);
             }
             if (minecraft.level != null && minecraft.level.isClientSide) {
                 ClientLevel lvl = minecraft.level;
@@ -641,10 +832,10 @@ public class SillyAPI {
 
     @LuaWhitelist
     @LuaMethodDoc(
-            value = "silly.get_block_entity", 
+            value = "silly.get_block_entity",
             overloads = {
                     @LuaMethodOverload(
-                            argumentNames = { "pos", "callback" }, 
+                            argumentNames = { "pos", "callback" },
                             argumentTypes = { FiguraVec3.class, LuaFunction.class }
                     )
             }
@@ -754,7 +945,7 @@ public class SillyAPI {
             overloads = {
                     @LuaMethodOverload(
                             argumentNames = { "script", "level" },
-                            argumentTypes = { String.class, String.class },
+                            argumentTypes = { String.class, SillyEnums.FORMAT_LEVEL.class },
                             returnType = String.class
                     ),
                     @LuaMethodOverload(
@@ -785,6 +976,51 @@ public class SillyAPI {
             case "AST" -> invoker.invokeASTMinify("script", script);
             default -> throw new LuaError("Unknown minification level " + level);
         };
+    }
+
+    @LuaWhitelist
+    public LuaTable freezeTable(@LuaNotNil LuaTable tbl) {
+        return SillyUtil.createReadOnlyLuaTable(tbl);
+    }
+
+    public Overridable<Long> dayTime = new Overridable<>();
+    public Overridable<Float> rainLevel = new Overridable<>();
+
+    @LuaWhitelist
+    public SillyAPI setDayTime(Long time) {
+        cheatExecutor(plr -> {
+            ((ClientLevel.ClientLevelData)plr.level().getLevelData()).setDayTime(time != null ? time : plr.level().getDayTime());
+            dayTime.setValue(time);
+        });
+        return this;
+    }
+
+    @LuaWhitelist
+    public LuaTable tokenize(@LuaNotNil String code) {
+        try {
+            Chunk chunk = new LuaParser(new StringReader(code)).Chunk();
+            chunk.accept(new NameResolver());
+            var visitor = new SillyScriptVisitor();
+            chunk.accept(visitor);
+            var tbl = visitor.toTable();
+            return tbl;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @LuaWhitelist
+    public SillyAPI setRainLevel(Float rainLevel) {
+        if (rainLevel != null)
+            if (rainLevel.isInfinite() | rainLevel.isNaN())
+                rainLevel = 0f;
+        Float finalRainLevel = rainLevel;
+        cheatExecutor(plr -> {
+            ((ClientLevel.ClientLevelData)plr.level().getLevelData()).setRaining(finalRainLevel > 0);
+            plr.level().setRainLevel(finalRainLevel);
+            this.rainLevel.setValue(finalRainLevel);
+        });
+        return this;
     }
 
     @LuaWhitelist
@@ -886,6 +1122,16 @@ public class SillyAPI {
         }
     }
 
+    @LuaWhitelist
+    public FiguraVec3 getDeltaMovement() {
+        Entity entity = EntityUtils.getEntityByUUID(avatar.owner);
+        if (entity instanceof Player plr) {
+            var deltaM = plr.getDeltaMovement();
+            return FiguraVec3.of(deltaM.x, deltaM.y, deltaM.z);
+        }
+        return FiguraVec3.of();
+    }
+
     @LuaFieldDoc("silly.vehicle_field")
     @AutoProperty @ReadOnly public SillyVehicleAPI vehicle = new SillyVehicleAPI(this);
 
@@ -941,27 +1187,22 @@ public class SillyAPI {
     }
 
     @LuaWhitelist
-    @LuaFieldDoc(value = "silly.ping")
-    @AutoProperty @ReadOnly
-    public VarArgFunction ping = new VarArgFunction() {
-        @Override
-        public Varargs invoke(Varargs args) {
-            Varargs siypugi = runtime.typeManager.javaToLua(SillyAPI.this);
-            if (!local) return siypugi;
-            args.arg1().checkuserdata(SillyAPI.class);
-            String pingFunc = args.arg(2).checkjstring();
-            Varargs actualArgs = args.subargs(3);
-            boolean sync = Configs.SYNC_PINGS.value;
-            byte[] data = new PingArg(actualArgs).toByteArray();
-            int id = (pingFunc.hashCode() + 1) * 31;
-            boolean isLocal = AvatarManager.localUploaded;
-            AvatarManager.localUploaded = true;
-            NetworkStuff.sendPing(id, sync, data);
-            AvatarManager.localUploaded = isLocal;
-            if (!sync) avatar.runPing(id, data);
-            return siypugi;
+    public SillyAPI ping(String pingFunc, Object... args) {
+        if (!local) return this;
+        PingFunction actualPing = avatar.luaRuntime.ping.get(pingFunc);
+        if (actualPing == null) throw new LuaError("Ping not found: " + pingFunc);
+
+        LuaValue[] v = new LuaValue[args.length];
+        for (int i = 0; i < args.length; i++) {
+            v[i] = avatar.luaRuntime.typeManager.javaToLua(args[i]).arg1();
         }
-    };
+        Varargs actualArgs = LuaValue.varargsOf(v);
+        boolean isLocal = AvatarManager.localUploaded;
+        AvatarManager.localUploaded = true;
+        actualPing.invoke(actualArgs);
+        AvatarManager.localUploaded = isLocal;
+        return this;
+    }
 
     @LuaWhitelist
     @LuaMethodDoc(
@@ -1005,6 +1246,10 @@ public class SillyAPI {
         value = "silly.set_fly",
         overloads = {
             @LuaMethodOverload(
+                    argumentTypes = { Boolean.class, Boolean.class },
+                    argumentNames = {"mayFly", "isFly"}
+            ),
+            @LuaMethodOverload(
                     argumentTypes = { Boolean.class },
                     argumentNames = {"mayFly"}
             ),
@@ -1015,17 +1260,19 @@ public class SillyAPI {
         },
         aliases = { "setCanFly" }
     )
-    public void setFly(Boolean mayFly) {
+    public void setFly(Boolean mayFly, Boolean isFly) {
         cheatExecutor(plr -> {
             this.mayFly.setValue(mayFly);
+            if (isFly != null)
+                minecraft.player.getAbilities().flying = isFly;
         });
     }
 
     // alias for backwards compat with goofy
     @LuaWhitelist
     @Alias
-    public void setCanFly(Boolean canFly) {
-        setFly(canFly);
+    public void setCanFly(Boolean canFly, Boolean isFly) {
+        setFly(canFly, isFly);
     }
 
     public boolean isVectorOkay(FiguraVec3 vec) {
@@ -1136,7 +1383,7 @@ public class SillyAPI {
     @LuaMethodDoc(value = "silly.cheats_enabled")
     public boolean cheatsEnabled() {
         AtomicBoolean enabled = new AtomicBoolean(false);
-        cheatExecutor(plr -> enabled.set(true));
+        cheatExecutor(plr -> enabled.set(true), false);
         return enabled.get();
     }
 

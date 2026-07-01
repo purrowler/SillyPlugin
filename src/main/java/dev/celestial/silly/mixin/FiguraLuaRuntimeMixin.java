@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.lib.apache.commons.tuple.Pair;
+import dev.celestial.silly.SillyPermissions;
 import dev.celestial.silly.SillyPlugin;
 import dev.celestial.silly.helper.AutoProfile;
 import dev.celestial.silly.lua.BackportsAPI;
@@ -72,7 +73,7 @@ public abstract class FiguraLuaRuntimeMixin {
 
     @Unique
     public void silly$injectExecTimeHook() {
-        if (this.owner.permissions.get(SillyPlugin.EXEC_TIME) != Integer.MAX_VALUE) {
+        if (this.owner.permissions.get(SillyPermissions.EXEC_TIME) != Integer.MAX_VALUE) {
             Varargs hook = silly$getHookFunction.call().checkfunction();
             LuaFunction hookFunc = hook.arg(1).checkfunction();
             LuaValue mask = hook.arg(2);
@@ -94,10 +95,10 @@ public abstract class FiguraLuaRuntimeMixin {
 
     @WrapMethod(method = "run")
     public Varargs runMixin(Object toRun, Avatar.Instructions limit, Object[] args, Operation<Varargs> original) {
-        if (owner.permissions.get(SillyPlugin.SCRIPT_EXEC) > 1 || Objects.equals(toRun, "ENTITY_INIT")) {
+        if (owner.permissions.get(SillyPermissions.SCRIPT_EXEC) > 1 || Objects.equals(toRun, "ENTITY_INIT")) {
             boolean removeEndTime = true;
             if (endTime.get() == null)
-                endTime.set(Instant.now().plusMillis(this.owner.permissions.get(SillyPlugin.EXEC_TIME)));
+                endTime.set(Instant.now().plusMillis(this.owner.permissions.get(SillyPermissions.EXEC_TIME)));
             else
                 removeEndTime = false;
             try(CallerContext ctx = BackportsAPI.openCallerContext(owner.owner, null, "avatarRun")) {
@@ -117,7 +118,7 @@ public abstract class FiguraLuaRuntimeMixin {
                     endTime.remove();
             }
         } else {
-            owner.noPermissions.add(SillyPlugin.SCRIPT_EXEC);
+            owner.noPermissions.add(SillyPermissions.SCRIPT_EXEC);
         }
         return null;
     }
@@ -126,9 +127,9 @@ public abstract class FiguraLuaRuntimeMixin {
     public boolean initMixin(Map<String, String> instance, Operation<Boolean> original) {
         boolean isEmpty = original.call(instance);
         if (!isEmpty) {
-            boolean shouldBeEmptyAnyway = owner.permissions.get(SillyPlugin.SCRIPT_EXEC) == 0;
+            boolean shouldBeEmptyAnyway = owner.permissions.get(SillyPermissions.SCRIPT_EXEC) == 0;
             if (shouldBeEmptyAnyway) {
-                owner.noPermissions.add(SillyPlugin.SCRIPT_EXEC);
+                owner.noPermissions.add(SillyPermissions.SCRIPT_EXEC);
                 return true;
             }
         }
@@ -145,7 +146,7 @@ public abstract class FiguraLuaRuntimeMixin {
                 try {
                     silly$injectExecTimeHook();
                     if (endTime.get() == null)
-                        endTime.set(Instant.now().plusMillis(owner.permissions.get(SillyPlugin.EXEC_TIME)));
+                        endTime.set(Instant.now().plusMillis(owner.permissions.get(SillyPermissions.EXEC_TIME)));
                     else
                         removeEndTime = false;
                     return ret.invoke(args);
@@ -163,7 +164,7 @@ public abstract class FiguraLuaRuntimeMixin {
         try(CallerContext ctx = BackportsAPI.openCallerContext(owner.owner, null, "initScript/" + str)) {
             silly$injectExecTimeHook();
             if (endTime.get() == null)
-                endTime.set(Instant.now().plusMillis(this.owner.permissions.get(SillyPlugin.EXEC_TIME)));
+                endTime.set(Instant.now().plusMillis(this.owner.permissions.get(SillyPermissions.EXEC_TIME)));
             else
                 removeEndTime = false;
             return original.call(str);

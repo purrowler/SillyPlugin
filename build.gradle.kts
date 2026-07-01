@@ -69,7 +69,9 @@ modstitch {
         fabricLoaderVersion = "0.16.10"
         // Configure loom like normal in this block.
         configureLoom {
-//            accessWidenerPath = rootProject.file("src/main/resources/sillyplugin.accesswidener")
+            val aw = project.file("src/main/resources/sillyplugin.accesswidener")
+            if (aw.exists())
+                accessWidenerPath = aw
         }
     }
 
@@ -88,7 +90,9 @@ modstitch {
         // This block configures the `neoforge` extension that MDG exposes by default,
         // you can configure MDG like normal from here
         configureNeoforge {
-//            accessTransformers.from(rootProject.file("src/main/resources/META-INF/accesstransformer.cfg"))
+            val at = project.file("src/main/resources/META-INF/accesstransformer.cfg")
+            if (at.exists())
+                accessTransformers.from(at)
 
             runs.all {
                 disableIdeRun()
@@ -147,4 +151,7 @@ dependencies {
     modstitchModImplementation("com.github.FiguraMC.luaj:luaj-core:$luaj_version-figura")
     modstitchModImplementation("com.github.FiguraMC.luaj:luaj-jse:$luaj_version-figura")
     modstitchModImplementation("com.neovisionaries:nv-websocket-client:$nv_websocket_version")
+    modstitchModImplementation("com.pngencoder:pngencoder:0.16.0")
+    modstitchJiJ("com.pngencoder:pngencoder:0.16.0")
+
 }

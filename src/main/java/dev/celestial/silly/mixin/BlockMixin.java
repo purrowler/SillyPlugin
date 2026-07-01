@@ -3,6 +3,7 @@ package dev.celestial.silly.mixin;
 import dev.celestial.silly.SillyPlugin;
 import dev.celestial.silly.lua.SillyAPI;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

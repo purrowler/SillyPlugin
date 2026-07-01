@@ -20,12 +20,12 @@ public class EventsAPIMixin implements EventsAccessor {
     @Unique
     @LuaWhitelist
     @LuaFieldDoc("events.error")
-    public LuaEvent ERROR;
+    public LuaEvent ERROR = new LuaEvent();
 
     @Unique
     @LuaWhitelist
     @LuaFieldDoc("events.gui_render")
-    public LuaEvent GUI_RENDER;
+    public LuaEvent GUI_RENDER = new LuaEvent();
 
 //    @Unique
 //    @LuaWhitelist
@@ -38,8 +38,8 @@ public class EventsAPIMixin implements EventsAccessor {
 
     @Inject(method = "<init>", at = @At("RETURN"))
     private void initMixin(CallbackInfo ci) {
-        ERROR = events.put("ERROR", new LuaEvent());
-        GUI_RENDER = events.put("GUI_RENDER", new LuaEvent());
+        events.put("ERROR", ERROR);
+        events.put("GUI_RENDER", GUI_RENDER);
     }
 
     @Override
