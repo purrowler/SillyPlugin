@@ -45,7 +45,7 @@ modstitch {
         modCredits = creds.joinToString("\n");
         modLicense = "MIT"
 
-        fun <K, V> MapProperty<K, V>.populate(block: MapProperty<K, V>.() -> Unit) {
+        fun <K: Any, V: Any> MapProperty<K, V>.populate(block: MapProperty<K, V>.() -> Unit) {
             block()
         }
 
@@ -138,14 +138,39 @@ fun figura(loader: String): String {
     return "org.figuramc:figura-$loader:$figura_version+$minecraft"
 }
 
+var voicechat_api_version = property("voicechat_api_version")
+var loader = "fabric";
+if (modstitch.isModDevGradleRegular)
+    loader = "neoforge"
+
+var svc_version = "";
+if (modstitch.isLoom) {
+    svc_version = when (property("deps.minecraft")) {
+        "1.20.1" -> "UiVFkKer"
+        "1.21.1" -> "IttovdN3"
+        "1.21.4" -> "B0SmLrhu"
+        else -> throw IllegalArgumentException("Please store the fabric svc version for ${property("deps.minecraft")} in build.gradle.kts!");
+    }
+} else {
+    svc_version = when (property("deps.minecraft")) {
+        "1.21.1" -> "8xOu3Um5"
+        "1.21.4" -> "5ERpmU4w"
+        else -> throw IllegalArgumentException("Please store the neoforge svc version for ${property("deps.minecraft")} in build.gradle.kts!");
+    }
+}
+
 dependencies {
     modstitch.loom {
         modstitchModImplementation("net.fabricmc.fabric-api:fabric-api:${property("deps.fapi")}+${minecraft}")
-        modstitchModImplementation(figura("fabric"))
     }
-    modstitch.moddevgradle {
-        modstitchModImplementation(figura("neoforge"))
-    }
+//    modstitch.moddevgradle {
+//    }
+    modstitchModImplementation(figura(loader))
+
+    // svc
+    modstitchModImplementation("maven.modrinth:9eGKb6K1:${svc_version}")
+    modstitchModImplementation("de.maxhenkel.voicechat:voicechat-api:${voicechat_api_version}")
+
 
 //    modstitchCompileOnly(figura("common-mojmap"))
     modstitchModImplementation("com.github.FiguraMC.luaj:luaj-core:$luaj_version-figura")

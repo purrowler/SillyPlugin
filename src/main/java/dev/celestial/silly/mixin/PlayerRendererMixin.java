@@ -11,9 +11,9 @@ import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 //? if >=1.21.4 {
-/*import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.client.renderer.entity.state.PlayerRenderState;
-*///?}
+//?}
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import org.figuramc.figura.avatar.AvatarManager;
@@ -24,7 +24,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 //? if >=1.21.4 {
-/*@Mixin(LivingEntityRenderer.class)
+@Mixin(LivingEntityRenderer.class)
 public class PlayerRendererMixin<T extends LivingEntity, S extends LivingEntityRenderState, M extends EntityModel<? super S>> {
     @Inject(method = "render(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V", at = @At("HEAD"), cancellable = true)
     public void silly$hidePlayers(S livingEntityRenderState, PoseStack poseStack, MultiBufferSource multiBufferSource, int i, CallbackInfo ci) {
@@ -44,8 +44,8 @@ public class PlayerRendererMixin<T extends LivingEntity, S extends LivingEntityR
             }
         }
     }
-}*///?} else {
-@Mixin(LivingEntityRenderer.class)
+}//?} else {
+/*@Mixin(LivingEntityRenderer.class)
 public class PlayerRendererMixin<T extends LivingEntity, M extends EntityModel<T>> {
     @Inject(method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V", at = @At("HEAD"), cancellable = true)
     public void silly$hidePlayers(LivingEntity livingEntity, float f, float g, PoseStack poseStack, MultiBufferSource multiBufferSource, int i, CallbackInfo ci) {
@@ -60,4 +60,4 @@ public class PlayerRendererMixin<T extends LivingEntity, M extends EntityModel<T
         }
     }
 }
-//?}
+*///?}

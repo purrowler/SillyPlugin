@@ -34,6 +34,8 @@ public class FiguraAPIManagerMixin {
         WHITELISTED_CLASSES.add(SillyProfiler.class);
         WHITELISTED_CLASSES.add(SillyAPI.SillyVehicleAPI.class);
         WHITELISTED_CLASSES.add(CollectionAPI.class);
+        WHITELISTED_CLASSES.add(SillyCompatsAPI.class);
+        WHITELISTED_CLASSES.addAll(SillyCompatsAPI.getLoaded());
 
         if (SillyUtil.DEV_MODE) {
             WHITELISTED_CLASSES.add(DevAPI.class);

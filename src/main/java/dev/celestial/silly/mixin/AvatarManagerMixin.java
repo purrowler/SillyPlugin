@@ -1,6 +1,7 @@
 package dev.celestial.silly.mixin;
 
 import dev.celestial.silly.SillyPlugin;
+import dev.celestial.silly.helper.SillyBlockHandler;
 import dev.celestial.silly.lua.SillyAPI;
 import dev.celestial.silly.not_a_mixin.AvatarExtensions;
 import net.minecraft.client.Minecraft;
@@ -33,18 +34,7 @@ public abstract class AvatarManagerMixin {
     private static void togglePanicMixin(CallbackInfo ci) {
         ClientLevel level = Minecraft.getInstance().level;
         if (level == null) return;
-        SillyPlugin.flattenedFakes().forEach((pos, state) -> {
-            if (panic) {
-                var real = SillyPlugin.RealBlocks.get(pos);
-                if (real != null) {
-                    level.setBlock(pos, real.getLeft(), 2);
-                    if (real.getRight() != null)
-                        level.setBlockEntity(real.getRight());
-                }
-            } else {
-                level.setBlock(pos, state, 2);;
-            }
-        });
+        SillyBlockHandler.panic(level, panic);
         if (SillyPlugin.hostInstance != null) SillyPlugin.hostInstance.onPanic(panic);
     }
 }

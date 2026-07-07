@@ -148,7 +148,7 @@ public class LuaGraphicsAPI implements AutoCloseable {
         if (texture instanceof FiguraTexture tx) {
             region = region != null ? region : FiguraVec4.of(0,0,tx.getWidth(), tx.getHeight());
             //? if >=1.21.2 {
-            /*graphics.blit(
+            graphics.blit(
                     RenderType::guiTextured,
                     tx.getLocation(),
                     (int)pos.x,
@@ -160,8 +160,8 @@ public class LuaGraphicsAPI implements AutoCloseable {
                     tx.getWidth(),
                     tx.getHeight()
             );
-            *///?} else {
-            graphics.blit(
+            //?} else {
+            /*graphics.blit(
                     tx.getLocation(),
                     (int)pos.x,
                     (int)pos.y,
@@ -172,7 +172,7 @@ public class LuaGraphicsAPI implements AutoCloseable {
                     (int)region.w,
                     tx.getWidth(),
                     tx.getHeight());
-            //?}
+            *///?}
         } else if (texture instanceof String str) {
             //? if >=1.21 {
             ResourceLocation loc = ResourceLocation.tryParse(str);
@@ -190,10 +190,10 @@ public class LuaGraphicsAPI implements AutoCloseable {
             region = region != null ? region : FiguraVec4.of(0,0,size.x, size.y);
 
             //? if >=1.21.2 {
-            /*graphics.blit(RenderType::guiTextured, loc, (int)pos.x, (int)pos.y, (int)region.x, (int)region.y, (int)region.z, (int)region.w,(int)size.x,(int)size.y);
-            *///?} else {
-            graphics.blit(loc, (int)pos.x, (int)pos.y, 0, (int)region.x, (int)region.y, (int)region.z, (int)region.w, (int)size.x,(int)size.y);
-            //?}
+            graphics.blit(RenderType::guiTextured, loc, (int)pos.x, (int)pos.y, (int)region.x, (int)region.y, (int)region.z, (int)region.w,(int)size.x,(int)size.y);
+            //?} else {
+            /*graphics.blit(loc, (int)pos.x, (int)pos.y, 0, (int)region.x, (int)region.y, (int)region.z, (int)region.w, (int)size.x,(int)size.y);
+            *///?}
 
         } else {
             throw new LuaError("LuaGraphics.blit, expected FiguraTexture or String, got " + texture.getClass().getSimpleName());

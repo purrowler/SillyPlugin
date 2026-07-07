@@ -20,6 +20,12 @@ public class SillySettings {
     public static SillySetting SILLY_ON_HOST = new SillyBooleanSetting("silly_on_host", true);
     public static SillySetting SILLY_ON_NONHOST = new SillyBooleanSetting("silly_on_nonhost", true);
     public static SillySetting CHEATS = new SillyBooleanSetting("cheats", true);
+    public static SillySetting DEV_LOGS;
+
+    static {
+        if (SillyUtil.DEV_MODE)
+            DEV_LOGS = new SillyBooleanSetting("dev_logs", true);
+    }
 
     public static ConfigType.Category TWEAKS_CATEGORY = category("sillyplugin_tweaks");
     public static SillySetting TOAST_ON_STEREO = new SillyBooleanSetting("toast_on_stereo", false, TWEAKS_CATEGORY);

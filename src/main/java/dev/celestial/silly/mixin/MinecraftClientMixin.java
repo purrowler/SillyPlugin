@@ -1,6 +1,7 @@
 package dev.celestial.silly.mixin;
 
 import dev.celestial.silly.SillyPlugin;
+import dev.celestial.silly.helper.SillyBlockHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,9 +17,7 @@ public class MinecraftClientMixin {
     @Inject(method = "clearClientLevel(Lnet/minecraft/client/gui/screens/Screen;)V", at = @At("HEAD"))
     //?}
     public void clearLevelMixin(Screen screen, CallbackInfo ci) {
-        SillyPlugin.FakeBlocks.clear();
-        SillyPlugin.RealBlocks.clear();
-        SillyPlugin.markFakesDirty();
-        SillyPlugin._cachedFlattened.clear();
+        SillyBlockHandler.BLOCKS.clear();
+        SillyBlockHandler.REAL_BLOCKS.clear();
     }
 }

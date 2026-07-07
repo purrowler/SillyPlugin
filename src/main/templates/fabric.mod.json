@@ -23,6 +23,9 @@
     "entrypoints": {
         "main": [
             "dev.celestial.silly.loaders.fabric.FabricEntrypoint"
+        ],
+        "voicechat": [
+            "dev.celestial.silly.plugin.SillyVoicechatPlugin"
         ]
     },
     "mixins": [

@@ -1,20 +1,18 @@
 package dev.celestial.silly.lua;
 
-import com.mojang.authlib.GameProfile;
-import com.mojang.authlib.minecraft.MinecraftSessionService;
 //? if >=1.21.1 {
 import com.mojang.authlib.yggdrasil.ProfileResult;
-//?}
+//?} else {
+/*import com.mojang.authlib.GameProfile;
+*///?}
 import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.brigadier.StringReader;
 import com.pngencoder.PngEncoder;
 import dev.celestial.silly.*;
-import dev.celestial.silly.annotations.Alias;
-import dev.celestial.silly.annotations.AutoProperty;
-import dev.celestial.silly.annotations.AutoPropertyWhitelist;
-import dev.celestial.silly.annotations.ReadOnly;
-import dev.celestial.silly.helper.CallerContext;
-import dev.celestial.silly.helper.Overridable;
-import dev.celestial.silly.helper.SillyScriptVisitor;
+import dev.celestial.silly.annotations.*;
+import dev.celestial.silly.helper.*;
+import dev.celestial.silly.helper.window.ActiveWindowFetcher;
+import dev.celestial.silly.helper.window.NullWindowFetcher;
 import dev.celestial.silly.mixin.AvatarAccessor;
 import dev.celestial.silly.mixin.LuaScriptParserInvokers;
 import dev.celestial.silly.mixin.RuntimeAccessor;
@@ -23,27 +21,29 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.resources.SkinManager;
+import net.minecraft.commands.arguments.blocks.BlockStateParser;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.StringTagVisitor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.monster.SpellcasterIllager;
 import net.minecraft.world.entity.player.Abilities;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
@@ -54,10 +54,8 @@ import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.font.Emojis;
 import org.figuramc.figura.gui.widgets.lists.AvatarList;
 import org.figuramc.figura.lua.*;
-import org.figuramc.figura.lua.api.AvatarAPI;
-import org.figuramc.figura.lua.api.TextureAPI;
+import org.figuramc.figura.lua.api.ClientAPI;
 import org.figuramc.figura.lua.api.entity.PlayerAPI;
-import org.figuramc.figura.lua.api.ping.PingArg;
 import org.figuramc.figura.lua.api.ping.PingFunction;
 import org.figuramc.figura.lua.api.world.BlockStateAPI;
 import org.figuramc.figura.lua.api.world.WorldAPI;
@@ -78,21 +76,14 @@ import org.figuramc.figura.utils.ColorUtils;
 import org.figuramc.figura.utils.EntityUtils;
 import org.figuramc.figura.utils.LuaUtils;
 import org.figuramc.figura.utils.TextUtils;
+import org.jetbrains.annotations.Nullable;
 import org.luaj.vm2.*;
 import org.luaj.vm2.ast.Chunk;
 import org.luaj.vm2.ast.NameResolver;
-import org.luaj.vm2.lib.VarArgFunction;
 import org.luaj.vm2.lib.ZeroArgFunction;
 import org.luaj.vm2.parser.LuaParser;
 
-import javax.imageio.IIOImage;
-import javax.imageio.ImageIO;
-import javax.imageio.ImageWriter;
 import java.awt.image.BufferedImage;
-import java.awt.image.IndexColorModel;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.StringReader;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -122,10 +113,9 @@ public class SillyAPI {
     public SillyAPI(FiguraLuaRuntime runtime) {
         this.avatar = runtime.owner;
         this.runtime = runtime;
-        SillyPlugin.FakeBlocks.put(avatar.owner, new ConcurrentHashMap<>());
-        SillyPlugin.markFakesDirty();
         this.minecraft = Minecraft.getInstance();
         this.backports = new BackportsAPI(runtime);
+        this.compats = new SillyCompatsAPI(runtime);
         local = avatar.isHost;
         ((AvatarExtensions)avatar).silly$setProfiler(profiler);
         if (local) SillyPlugin.hostInstance = this;
@@ -137,6 +127,10 @@ public class SillyAPI {
         else hiddenPlayers.add(player);
         return this;
     }
+
+    @AutoProperty
+    @ReadOnly
+    public SillyCompatsAPI compats;
 
     @LuaWhitelist
     public Boolean isPlayerVisible() {
@@ -175,19 +169,7 @@ public class SillyAPI {
     public void cleanup() {
         SillyPlugin.LOGGER.info("SillyAPI.cleanup() for {}", avatar.owner);
         ClientLevel level = minecraft.level;
-        var fakes = SillyPlugin.FakeBlocks.remove(avatar.owner);
-        SillyPlugin.markFakesDirty();
-        SillyPlugin.flattenedFakes(true); // rebuild caches
-        if (fakes != null)
-            fakes.keySet().forEach(x -> {
-                if (!SillyPlugin.fakeExistsAt(x, false) && level != null) {
-                    SillyPlugin._cachedFlattened.remove(x);
-                    var real = SillyPlugin.RealBlocks.remove(x);
-                    level.setBlock(x, real.getLeft(), 2);
-                    if (real.getRight() != null)
-                        level.setBlockEntity(real.getRight());
-                }
-            });
+        SillyBlockHandler.removeOf(avatar.owner, level);
 
         if (!local) return; // START host cleanup
         if (minecraft.player != null) {
@@ -321,10 +303,10 @@ public class SillyAPI {
                 var skin = minecraft.getSkinManager().getOrLoad(profile.profile());
                 skin.thenAcceptAsync(playerSkin -> {
                     //? if >=1.21.4 {
-                    /*playerSkin.ifPresent(sk -> {
-                    *///?} else {
-                        var sk = playerSkin;
-                        //?}
+                    playerSkin.ifPresent(sk -> {
+                    //?} else {
+                        /*var sk = playerSkin;
+                        *///?}
                         try (CallerContext ctx = BackportsAPI.openCallerContext(avatar.owner, null, "silly.getSkin.callback")) {
                             if (avatar.luaRuntime == null || avatar.scriptError) return;
                             SillyUtil.logAsAvatar(avatar, SillyPlugin.LOGGER::info, "Loc: " + sk.texture().toString());
@@ -334,8 +316,8 @@ public class SillyAPI {
                             avatar.luaRuntime.error(e);
                         }
                     //? if >=1.21.4 {
-                    /*});
-                    *///?}
+                    });
+                    //?}
 
                 }, minecraft);
                 //?} else {
@@ -488,16 +470,16 @@ public class SillyAPI {
         for (int x = 0; x < img.getWidth(); x++) {
             for (int y = 0; y < img.getHeight(); y++) {
                 //? if >=1.21.4 {
-                /*img2.setRGB(x,y,img.getPixel(x,y));
-                 *///?} else {
-                int col = img.getPixelRGBA(x,y);
+                img2.setRGB(x,y,img.getPixel(x,y));
+                 //?} else {
+                /*int col = img.getPixelRGBA(x,y);
                 int a = (col >> 24) & 0xFF;
                 int b = (col >> 16) & 0xFF;
                 int g = (col >> 8) & 0xFF;
                 int r = col & 0xFF;
                 col = (a << 24) | (r << 16) | (g << 8) | b;
                 img2.setRGB(x,y,col);
-                //?}
+                *///?}
             }
         }
         img.close();
@@ -665,6 +647,7 @@ public class SillyAPI {
     @LuaMethodDoc("silly.cat")
     public void cat() {
         if (!local) return;
+        if (!Configs.CHAT_MESSAGES.value) return;
         ClientPacketListener con = minecraft.getConnection();
         if (con == null) return;
         con.sendChat("meow");
@@ -757,7 +740,51 @@ public class SillyAPI {
         });
     }
 
+    @LuaWhitelist
+    public void clearFakeBlocks() {
+        SillyBlockHandler.removeOf(avatar.owner, minecraft.level);
+    }
+
+    @LuaWhitelist
+    @Unfinished
+    public LuaValue[] getFocusedWindow(String override) {
+        if (!local) return new LuaValue[] {
+            ActiveWindowFetcher.NULL.toTable(),
+            LuaValue.valueOf(NullWindowFetcher.class.getSimpleName())
+        };
+        ActiveWindowFetcher fetcher;
+        if (override != null) {
+            var clazz = ActiveWindowFetcher.FETCHERS.get(override);
+            if (clazz != null) {
+                try {
+                    fetcher = clazz.getConstructor().newInstance();
+                } catch (Exception e) {
+                    fetcher = ActiveWindowFetcher.findFetcher();
+                }
+            } else {
+                fetcher = ActiveWindowFetcher.findFetcher();
+            }
+        } else {
+            fetcher = ActiveWindowFetcher.findFetcher();
+        }
+        ActiveWindowFetcher.WindowInfo value;
+        try {
+            value = fetcher.getWindow();
+        } catch (Exception e) {
+            SillyUtil.Devlog(e.getMessage());
+            value = ActiveWindowFetcher.NULL;
+        }
+        return new LuaValue[] {
+            value.toTable(),
+            LuaValue.valueOf(fetcher.getClass().getSimpleName())
+        };
+    }
+
     private void setBlockInternal(BlockPos pos, BlockState state) {
+        setBlockInternal(pos, state, null);
+    }
+
+    private void setBlockInternal(BlockPos pos, BlockState state, @Nullable CompoundTag entity) {
         cheatExecutor(plr -> {
             if (avatar.permissions.get(SillyPermissions.FAKE_BLOCKS) != 1) {
                 avatar.noPermissions.add(SillyPermissions.FAKE_BLOCKS);
@@ -767,21 +794,31 @@ public class SillyAPI {
             }
             if (minecraft.level != null && minecraft.level.isClientSide) {
                 ClientLevel lvl = minecraft.level;
-                BlockState realBlock = lvl.getBlockState(pos);
-                BlockEntity realEntity;
-                if (realBlock.hasBlockEntity())
-                    realEntity = lvl.getBlockEntity(pos);
-                else {
-                    realEntity = null;
-                }
-                SillyPlugin.RealBlocks.computeIfAbsent(pos, k -> new ImmutablePair<>(realBlock, realEntity));
-                SillyPlugin.FakeBlocks.computeIfAbsent(avatar.owner, k -> new ConcurrentHashMap<>())
-                        .put(pos, state);
-                SillyPlugin._cachedFlattened.put(pos, state);
-                SillyPlugin.markFakesDirty();
+                SillyBlockHandler.REAL_BLOCKS.computeIfAbsent(pos, k -> {
+                    BlockState realstate = lvl.getBlockState(k);
+                    var realentity = lvl.getBlockEntity(k);
+                    return new SillyBlockContainer(k, realstate, realentity);
+                });
+                var cont = new SillyBlockContainer(pos, state, avatar.owner);
+                SillyBlockHandler.BLOCKS.put(pos, cont);
 
-                if (!(SillyPlugin.hostInstance != null && SillyPlugin.hostInstance.fakeBlocksDisabled))
-                    lvl.setBlock(pos, state, 2);
+                if (!(SillyPlugin.hostInstance != null && SillyPlugin.hostInstance.fakeBlocksDisabled)) {
+                    SillyBlockHandler.setBlock(cont, lvl);
+                    if (entity != null && state.getBlock() instanceof EntityBlock) {
+                        var blockEnt = lvl.getBlockEntity(pos);
+                        if (blockEnt == null) {
+                            blockEnt = ((EntityBlock)state.getBlock()).newBlockEntity(pos, state);
+                            lvl.setBlockEntity(blockEnt);
+                        }
+                        assert blockEnt != null;
+                        //? if >=1.20.5 {
+                        blockEnt.loadWithComponents(entity, lvl.registryAccess());
+                        //?} else {
+                        /*blockEnt.load(entity);
+                        *///?}
+                        cont.entity = blockEnt;
+                    }
+                }
             }
         }, false);
     }
@@ -805,28 +842,33 @@ public class SillyAPI {
             }
     )
     public void setBlock(Object pos, Object block) {
-        if (pos instanceof BlockStateAPI state) {
-            BlockPos bpos = state.getPos().asBlockPos();
-            setBlockInternal(bpos, state.blockState);
-        } else if (pos instanceof FiguraVec3 posFV3) {
-            if (block instanceof BlockStateAPI state) {
-                setBlockInternal(posFV3.asBlockPos(), state.blockState);
-            } else if (block instanceof String stackString) {
+        if (pos instanceof FiguraVec3 posFV3) {
+            if (block instanceof String stackString) {
                 BlockStateAPI bs = WorldAPI.newBlock(stackString, null, null, null);
-                setBlock(posFV3, bs);
-            } else if (block == null) {
-                BlockPos bp = posFV3.asBlockPos();
-                // its silly but it works
-                SillyPlugin.FakeBlocks.getOrDefault(avatar.owner, new ConcurrentHashMap<>()).remove(bp);
-                SillyPlugin.markFakesDirty();
-                Pair<BlockState, BlockEntity> real = SillyPlugin.RealBlocks.get(bp);
-                ClientLevel lvl = minecraft.level;
-                if (real != null && !SillyPlugin.fakeExistsAt(bp) && lvl != null) {
-                    lvl.setBlock(bp, real.getLeft(), 2);
-                    if (real.getRight() != null)
-                        lvl.setBlockEntity(real.getRight());
+
+                if (bs.hasBlockEntity()) {
+                    ClientLevel lvl = minecraft.level;
+                    assert lvl != null;
+                    HolderLookup<Block> lookup = lvl.holderLookup(Registries.BLOCK);
+                    var reader = new StringReader(stackString);
+                    try {
+                        var result = BlockStateParser.parseForBlock(lookup, reader, true);
+                        var nbt = result.nbt();
+                        var visitor = new StringTagVisitor();
+                        SillyUtil.Devlog("nbt: {}", visitor.visit(nbt));
+                        setBlockInternal(posFV3.asBlockPos(), result.blockState(), nbt);
+
+                    } catch (com.mojang.brigadier.exceptions.CommandSyntaxException e) {
+                        setBlock(posFV3, bs);
+                    }
+                } else {
+                    setBlock(posFV3, bs);
                 }
+            } else if (block instanceof BlockStateAPI bs) {
+                setBlockInternal(posFV3.asBlockPos(), bs.blockState);
             }
+        } else if (pos instanceof BlockStateAPI bs) {
+            setBlock(bs.getPos(), bs);
         }
     }
 
@@ -900,20 +942,15 @@ public class SillyAPI {
         if (!local) return this;
         state = state != null && state;
         state = !state;
+        var wasDisabled = this.fakeBlocksDisabled;
         this.fakeBlocksDisabled = state;
         ClientLevel lvl = minecraft.level;
         if (lvl == null) return this;
-        if (state) {
-            SillyPlugin.RealBlocks.forEach((pos, dt) -> {
-                lvl.setBlock(pos, dt.getLeft(), 2);
-                BlockEntity ent = dt.getRight();
-                if (ent != null) lvl.setBlockEntity(ent);
-            });
-        } else {
-            SillyPlugin.flattenedFakes().forEach((pos, bstate) -> {
-                lvl.setBlock(pos, bstate, 2);
-            });
-        }
+        if (state != wasDisabled)
+            if (state)
+                SillyBlockHandler.revert(lvl);
+            else
+                SillyBlockHandler.apply(lvl);
         return this;
     }
 
@@ -998,7 +1035,7 @@ public class SillyAPI {
     @LuaWhitelist
     public LuaTable tokenize(@LuaNotNil String code) {
         try {
-            Chunk chunk = new LuaParser(new StringReader(code)).Chunk();
+            Chunk chunk = new LuaParser(new java.io.StringReader(code)).Chunk();
             chunk.accept(new NameResolver());
             var visitor = new SillyScriptVisitor();
             chunk.accept(visitor);
@@ -1010,6 +1047,7 @@ public class SillyAPI {
     }
 
     @LuaWhitelist
+    @Unfinished
     public SillyAPI setRainLevel(Float rainLevel) {
         if (rainLevel != null)
             if (rainLevel.isInfinite() | rainLevel.isNaN())
@@ -1187,6 +1225,7 @@ public class SillyAPI {
     }
 
     @LuaWhitelist
+    @Unfinished
     public SillyAPI ping(String pingFunc, Object... args) {
         if (!local) return this;
         PingFunction actualPing = avatar.luaRuntime.ping.get(pingFunc);
@@ -1222,14 +1261,11 @@ public class SillyAPI {
     public LuaTable getFakeBlockInfo(Object x, Double y, Double z) {
         BlockPos pos = LuaUtils.parseVec3("getFakeBlockInfo", x, y, z).asBlockPos();
         LuaTable ret = LuaValue.tableOf();
-        int i = 1;
-        for (Map.Entry<UUID, ConcurrentHashMap<BlockPos, BlockState>> entry : SillyPlugin.FakeBlocks.entrySet()) {
-            UUID uuid = entry.getKey();
-            Map<BlockPos, BlockState> data = entry.getValue();
-            if (data.get(pos) != null) {
-                ret.set(i, uuid.toString());
-                i++;
-            }
+        if (SillyBlockHandler.BLOCKS.containsKey(pos)) {
+            // backwards compat
+            var cont = SillyBlockHandler.BLOCKS.get(pos);
+            if (cont.owner != null)
+                ret.set(1, cont.owner.toString());
         }
         return ret;
     }
@@ -1314,10 +1350,10 @@ public class SillyAPI {
                     ClientPacketListener conn = minecraft.getConnection();
                     if (conn != null) {
                         //? if >=1.21.4 {
-                        /*conn.send(new ServerboundMovePlayerPacket.Pos(pos.x,pos.y,pos.z,plr.onGround(),plr.horizontalCollision));
-                        *///?} else {
-                        conn.send(new ServerboundMovePlayerPacket.Pos(pos.x,pos.y,pos.z,plr.onGround()));
-                         //?}
+                        conn.send(new ServerboundMovePlayerPacket.Pos(pos.x,pos.y,pos.z,plr.onGround(),plr.horizontalCollision));
+                        //?} else {
+                        /*conn.send(new ServerboundMovePlayerPacket.Pos(pos.x,pos.y,pos.z,plr.onGround()));
+                         *///?}
                     }
                 } else
                     plr.setPos(pos.asVec3());

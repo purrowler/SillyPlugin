@@ -1,5 +1,6 @@
 package dev.celestial.silly;
 
+import dev.celestial.silly.helper.SillyBlockHandler;
 import dev.celestial.silly.loaders.ISillyLoader;
 import dev.celestial.silly.lua.SillyAPI;
 import net.minecraft.core.BlockPos;
@@ -27,8 +28,6 @@ public class SillyPlugin {
     public static ISillyLoader Loader;
     @Nullable
     public static SillyAPI hostInstance;
-    public static ConcurrentHashMap<UUID, ConcurrentHashMap<BlockPos, BlockState>> FakeBlocks = new ConcurrentHashMap<>();
-    public static ConcurrentHashMap<BlockPos, Pair<BlockState, BlockEntity>> RealBlocks = new ConcurrentHashMap<>();
 
     public static boolean shouldHide(SillyEnums.GUI_ELEMENT el) {
         if (hostInstance == null) return false;
@@ -36,34 +35,10 @@ public class SillyPlugin {
         return hostInstance.disabledElements.contains(el);
     }
 
-    public static boolean fakeExistsAt(BlockPos pos, boolean rebuild) {
-        return flattenedFakes(rebuild).containsKey(pos);
-    }
-
     public static boolean fakeExistsAt(BlockPos pos) {
-        return fakeExistsAt(pos, true);
-    }
-
-    public static ConcurrentHashMap<BlockPos, BlockState> _cachedFlattened = new ConcurrentHashMap<>();
-    public static boolean _cacheDirty = true;
-    public static ConcurrentHashMap<BlockPos, BlockState> flattenedFakes() {
-        return flattenedFakes(true);
-    }
-    public static ConcurrentHashMap<BlockPos, BlockState> flattenedFakes(boolean rebuild) {
-        if (_cacheDirty && rebuild) {
-            ConcurrentHashMap<BlockPos, BlockState> ret = new ConcurrentHashMap<>();
-            for (ConcurrentHashMap<BlockPos, BlockState> value : FakeBlocks.values()) {
-                ret.putAll(value);
-            }
-            _cachedFlattened = ret;
-            _cacheDirty = false;
-            return ret;
+        synchronized (SillyBlockHandler.BLOCKS) {
+            return SillyBlockHandler.BLOCKS.containsKey(pos);
         }
-        return _cachedFlattened;
-    }
-
-    public static void markFakesDirty() {
-        _cacheDirty = true;
     }
 
     public static boolean shouldNoclip(Entity entity) {

@@ -6,10 +6,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.UUID;
 
 public class CallerContext implements AutoCloseable {
-    private UUID uuid;
+    private final UUID uuid;
     @Nullable
-    private UUID owner;
-    private String context;
+    private final UUID owner;
+    private final String context;
 
     public CallerContext(UUID uuid, @Nullable UUID owner, String ctx) {
         this.uuid = uuid;

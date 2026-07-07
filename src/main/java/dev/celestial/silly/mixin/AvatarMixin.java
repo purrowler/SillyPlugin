@@ -90,10 +90,10 @@ public class AvatarMixin implements AvatarExtensions {
 
     @WrapMethod(method = "render(Lnet/minecraft/world/entity/Entity;FFFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;IILnet/minecraft/client/renderer/entity/LivingEntityRenderer;Lorg/figuramc/figura/model/rendering/PartFilterScheme;ZZ)V", remap = true)
     //? if >=1.21.4 {
-    /*public void silly$profileRender(Entity entity, float yaw, float delta, float alpha, PoseStack stack, MultiBufferSource bufferSource, int light, int overlay, LivingEntityRenderer<?, ?, ?> entityRenderer, PartFilterScheme filter, boolean translucent, boolean glowing, Operation<Void> original) {
-    *///?} else {
-    public void silly$profileRender(Entity entity, float yaw, float delta, float alpha, PoseStack stack, MultiBufferSource bufferSource, int light, int overlay, LivingEntityRenderer<?, ?> entityRenderer, PartFilterScheme filter, boolean translucent, boolean glowing, Operation<Void> original) {
-    //?}
+    public void silly$profileRender(Entity entity, float yaw, float delta, float alpha, PoseStack stack, MultiBufferSource bufferSource, int light, int overlay, LivingEntityRenderer<?, ?, ?> entityRenderer, PartFilterScheme filter, boolean translucent, boolean glowing, Operation<Void> original) {
+    //?} else {
+    /*public void silly$profileRender(Entity entity, float yaw, float delta, float alpha, PoseStack stack, MultiBufferSource bufferSource, int light, int overlay, LivingEntityRenderer<?, ?> entityRenderer, PartFilterScheme filter, boolean translucent, boolean glowing, Operation<Void> original) {
+    *///?}
         SillyProfiler prf = this.silly$getProfiler();
         if (prf == null) {
             original.call(entity, yaw, delta, alpha, stack, bufferSource, light, overlay, entityRenderer, filter, translucent, glowing);

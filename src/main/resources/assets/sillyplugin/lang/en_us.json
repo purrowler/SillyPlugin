@@ -40,12 +40,12 @@
     "figura.docs.silly.get_skin": "Gets the resource location of another player's skin.\nA callback is only required if a name is passed instead of a PlayerAPI.\nThere are no guarantees as to whether or not the callback will be fired.",
 
     "figura.docs.silly.vehicle_field": "Accesses the current SillyVehicleAPI instance.",
-    "figura.docs.silly.vehicle": "Silly's Vehicle API",
+    "figura.docs.silly.vehicle": "Silly's Vehicle API\nAccess with `silly.vehicle`",
     "figura.docs.silly.vehicle.set_pos": "Sets your vehicle's position.\nRequires cheats.",
     "figura.docs.silly.vehicle.set_velocity": "Sets your vehicle's velocity.\nRequires cheats.",
     "figura.docs.silly.vehicle.set_rot": "Sets your vehicle's rotation.\nRequires cheats.",
 
-    "figura.docs.silly_profiler": "Silly Nanosecond Profiler",
+    "figura.docs.silly_profiler": "Silly Nanosecond Profiler\nAccess with `silly.profiler` or `silly:getProfiler(name/uuid)`",
     "figura.docs.silly.profiler": "The Silly Nanosecond Profiler for this instance of sillyplugin",
     "figura.docs.silly_profiler.get_times": "Returns a table of each timing.\nPass true to only get the last execution.",
     "figura.docs.silly_profiler.get_render_event_times": "Gets the time it took to execute the render event the last 60 times.",
@@ -54,7 +54,7 @@
     "figura.docs.silly_profiler.get_world_tick_times": "Gets the time it took to execute the world tick event the last 60 times.",
     "figura.docs.silly_profiler.get_world_render_times": "Gets the time it took to execute the world render event the last 60 times.",
 
-    "figura.docs.silly.lua_graphics": "Silly Lua GuiGraphics Wrapper",
+    "figura.docs.silly.lua_graphics": "Silly Lua GuiGraphics Wrapper\nAccess with events.GUI_RENDER",
     "figura.docs.silly.lua_graphics.is_revoked": "Returns if this LuaGraphics instance can no longer be used.",
     "figura.docs.silly.lua_graphics.set_scissors": "Discards anything rendered outside this box.\nPass nil to disable.\n(Multiple scissors can be on at once, passing nil will only disable the latest one!)",
     "figura.docs.silly.lua_graphics.pop_pose": "Removes the latest value of the Pose Stack.\nSee: LuaGraphics:pushPoseMatrix()",
@@ -123,6 +123,8 @@
     "figura.config.lenient_mode.tooltip": "Stops some functions from strictly validating input.\nMay cause some slight issues in avatars.",
     "figura.config.loosen_nb4u": "Loosen NoBadges4U",
     "figura.config.loosen_nb4u.tooltip": "Replaces the overzealous NoBadges4U implementation with a more lenient one.",
+    "figura.config.dev_logs": "[DEV] Enable verbose logging",
+    "figura.config.dev_logs.tooltip": "SillyUtil.Devlog()",
 
     "figura.emoji.silly": "Sillyplugin"
 }

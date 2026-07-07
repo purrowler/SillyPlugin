@@ -22,6 +22,7 @@ pluginManagement {
 }
 
 plugins {
+    id("fabric-loom") version "1.17-SNAPSHOT" apply false
     id("dev.kikugie.stonecutter") version "0.6+"
 }
 

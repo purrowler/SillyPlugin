@@ -26,6 +26,8 @@ public class GameRendererMixin {
         AvatarManager.executeAll("preRenderBackport", a -> {
             SillyAPI silly = ((AvatarExtensions)a).silly$getSilly();
             if (silly == null) return;
+            if (a.luaRuntime == null) return;
+            if (a.luaRuntime.getUser() == null) return;
             //? if >1.21 {
             a.run(silly.backports.PRE_RENDER, a.render, deltaTracker.getGameTimeDeltaPartialTick(bl), a.renderMode.name());
             //?} else {

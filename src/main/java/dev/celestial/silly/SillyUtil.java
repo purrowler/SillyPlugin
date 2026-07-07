@@ -12,25 +12,21 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.Services;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.world.entity.player.Player;
-import org.apache.bcel.generic.Type;
+import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
-import org.figuramc.figura.lua.api.TextureAPI;
-import org.figuramc.figura.mixin.render.MissingTextureAtlasSpriteAccessor;
 import org.figuramc.figura.mixin.render.TextureAtlasAccessor;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 
-import java.lang.reflect.Modifier;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
 public class SillyUtil {
-    public static final boolean DEV_MODE = false;
+    public static final boolean DEV_MODE = true;
     public static Services services;
     public static Avatar getAvatar(String username) {
         UUID uuid = getUUID(username);
@@ -69,12 +65,12 @@ public class SillyUtil {
             NativeImage img;
             if (tx instanceof SimpleTexture stx) {
                 //? if >1.21.1 {
-                /*TextureContents conts = stx.loadContents(Minecraft.getInstance().getResourceManager());
+                TextureContents conts = stx.loadContents(Minecraft.getInstance().getResourceManager());
                 img = conts.image();
-                *///?} else {
-                SimpleTexture.TextureImage txImg = stx.getTextureImage(Minecraft.getInstance().getResourceManager());
+                //?} else {
+                /*SimpleTexture.TextureImage txImg = stx.getTextureImage(Minecraft.getInstance().getResourceManager());
                 img = txImg.getImage();
-                //?}
+                *///?}
             } else if (tx instanceof DynamicTexture dtx) {
                 img = dtx.getPixels();
             } else {
@@ -114,6 +110,15 @@ public class SillyUtil {
             }
         }
         return uuid;
+    }
+
+    public static UUID clientUUID() {
+        return FiguraMod.getLocalPlayerUUID();
+    }
+
+    public static void Devlog(String message, Object... vars) {
+        if (DEV_MODE && SillySettings.DEV_LOGS.getBool())
+            SillyPlugin.LOGGER.info(message, vars);
     }
 
     private static Class<?> roltClass;
